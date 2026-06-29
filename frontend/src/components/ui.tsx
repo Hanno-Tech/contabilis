@@ -1,0 +1,133 @@
+import { Box, Chip, Grid, Paper, Stack, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import type { ReactNode } from 'react';
+import { mono } from '../theme';
+
+/**
+ * Tratamento "razão": identificadores e números (código, CNPJ, R$, datas)
+ * em mono tabular — a assinatura visual da ferramenta contábil.
+ */
+export function Mono({
+  children,
+  sx,
+}: {
+  children: ReactNode;
+  sx?: object;
+}) {
+  return (
+    <Box
+      component="span"
+      sx={{ fontFamily: mono, fontFeatureSettings: '"tnum" 1', fontSize: '0.9em', ...sx }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+/** Card de bloco da ficha (preserva o agrupamento das planilhas — RNF-04). */
+export function SectionCard({
+  title,
+  icon,
+  children,
+  action,
+}: {
+  title: string;
+  icon?: ReactNode;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {icon}
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            {title}
+          </Typography>
+        </Stack>
+        {action}
+      </Stack>
+      {children}
+    </Paper>
+  );
+}
+
+/** Par rótulo/valor para leitura. `wide` ocupa a linha inteira (texto longo). */
+export function ReadField({
+  label,
+  value,
+  wide = false,
+  pre = false,
+}: {
+  label: string;
+  value: ReactNode;
+  wide?: boolean;
+  pre?: boolean;
+}) {
+  const empty = value === null || value === undefined || value === '';
+  return (
+    <Grid item xs={12} sm={wide ? 12 : 6} md={wide ? 12 : 4}>
+      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ mt: 0.25, whiteSpace: pre ? 'pre-wrap' : 'normal', color: empty ? 'text.disabled' : 'text.primary' }}
+      >
+        {empty ? '—' : value}
+      </Typography>
+    </Grid>
+  );
+}
+
+export function SituacaoChip({ situacao }: { situacao: string }) {
+  const lower = situacao.toLowerCase();
+  const tone: 'success' | 'neutral' | 'error' =
+    lower.includes('ativ') || lower.includes('vigente')
+      ? 'success'
+      : lower.includes('expir') || lower.includes('inativ') || lower.includes('baix')
+        ? 'error'
+        : 'neutral';
+  const palette = {
+    success: { fg: '#0B7F58', bg: '#0E9F6E' },
+    error: { fg: '#BE123C', bg: '#E11D48' },
+    neutral: { fg: '#475569', bg: '#64748B' },
+  }[tone];
+  return (
+    <Chip
+      size="small"
+      label={situacao}
+      sx={{
+        color: palette.fg,
+        bgcolor: alpha(palette.bg, 0.12),
+        fontWeight: 700,
+        border: 'none',
+        '& .MuiChip-label': { px: 1.25 },
+      }}
+    />
+  );
+}
+
+export function EmptyState({ message }: { message: string }) {
+  return (
+    <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+      <Typography variant="body2">{message}</Typography>
+    </Box>
+  );
+}
+
+/** Formata 'YYYY-MM-DD' para 'DD/MM/AAAA'. */
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const [y, m, d] = value.slice(0, 10).split('-');
+  if (!y || !m || !d) return value;
+  return `${d}/${m}/${y}`;
+}
+
+/** Formata número/string numérica em R$. */
+export function formatMoney(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const n = typeof value === 'string' ? Number(value) : value;
+  if (Number.isNaN(n)) return String(value);
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
