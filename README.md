@@ -54,6 +54,20 @@ do arquivo.
 > `hosts` do Windows. O frontend é servido na porta 80 para que a URL fique
 > limpa (`http://contabilis.local`, sem `:porta`).
 
+### Desinstalar
+
+Para desfazer tudo o que o instalador fez, rode **`uninstall-windows.bat`**
+(duplo-clique). Ele encerra o app, remove o alias do `hosts`, apaga o banco e o
+usuário `contabilis` e remove a pasta do projeto. Por segurança ele **pergunta**
+antes de desinstalar Node, Git e PostgreSQL (que podem ser usados por outros
+projetos). Para remover **tudo** sem perguntar:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File uninstall-windows.ps1 -All -Force
+```
+
+Para remover só o app e manter os programas: adicione `-KeepPackages`.
+
 ## Pré-requisitos (instalação manual)
 
 - Node.js 20+ (testado com 24)
