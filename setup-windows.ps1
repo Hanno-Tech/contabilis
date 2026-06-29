@@ -157,22 +157,74 @@ if (-not $psql) {
 if (-not $psql) { throw 'psql.exe nao encontrado -- verifique a instalacao do PostgreSQL.' }
 Write-Info "psql: $psql"
 
-$env:PGPASSWORD = $PgSuperPassword
 $psqlBase = @('-v', 'ON_ERROR_STOP=1', '-h', 'localhost', '-p', "$DbPort", '-U', 'postgres', '-d', 'postgres')
 
-# Aguarda o servidor aceitar conexoes (recem-instalado pode demorar alguns segundos).
+# Tenta conectar testando as senhas mais comuns. Cobre:
+#  - a senha que ESTE script define ao instalar ('postgres');
+#  - o default do pacote Chocolatey do PostgreSQL ('Postgres1234');
+#  - uma senha informada via -PgSuperPassword.
+# O laco tambem da tempo para um servidor recem-instalado terminar de subir.
+$pgCandidates = @($PgSuperPassword, 'postgres', 'Postgres1234') |
+    Where-Object { $_ } | Select-Object -Unique
 $ready = $false
-for ($i = 0; $i -lt 30 -and -not $ready; $i++) {
-    & $psql @psqlBase -tAc 'SELECT 1' *> $null
-    if ($LASTEXITCODE -eq 0) { $ready = $true } else { Start-Sleep -Seconds 2 }
+for ($i = 0; $i -lt 20 -and -not $ready; $i++) {
+    foreach ($pw in $pgCandidates) {
+        $env:PGPASSWORD = $pw
+        & $psql @psqlBase -tAc 'SELECT 1' *> $null
+        if ($LASTEXITCODE -eq 0) { $ready = $true; $PgSuperPassword = $pw; break }
+    }
+    if (-not $ready) { Start-Sleep -Seconds 2 }
 }
+
+# Ainda sem conexao: a senha do 'postgres' e desconhecida. Reseta sem precisar
+# dela, pelo metodo oficial -> deixa o pg_hba.conf em 'trust', troca a senha e
+# restaura o pg_hba.conf. Requer Administrador (ja temos).
+if (-not $ready -and $pgService) {
+    Write-Warn "Senha do usuario 'postgres' desconhecida -- redefinindo automaticamente para '$PgSuperPassword'..."
+    $svcInfo = Get-CimInstance Win32_Service -Filter "Name='$($pgService.Name)'" -ErrorAction SilentlyContinue
+    $dataDir = $null
+    if ($svcInfo -and $svcInfo.PathName -match '-D\s+"([^"]+)"') { $dataDir = $Matches[1] }
+    $hba = if ($dataDir) { Join-Path $dataDir 'pg_hba.conf' } else { $null }
+
+    if ($hba -and (Test-Path $hba)) {
+        $backup = "$hba.contabilis.bak"
+        Copy-Item $hba $backup -Force
+        try {
+            # Libera acesso local sem senha temporariamente.
+            @(
+                'host all all 127.0.0.1/32 trust',
+                'host all all ::1/128 trust',
+                'local all all trust'
+            ) | Set-Content -Path $hba -Encoding ascii
+            Restart-Service $pgService.Name -Force
+            Start-Sleep -Seconds 3
+
+            Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
+            & $psql @psqlBase -c "ALTER USER postgres WITH PASSWORD '$PgSuperPassword';"
+            if ($LASTEXITCODE -eq 0) { $ready = $true; Write-Ok "Senha do 'postgres' redefinida." }
+        }
+        finally {
+            # Sempre restaura a configuracao original de autenticacao.
+            Copy-Item $backup $hba -Force
+            Remove-Item $backup -Force -ErrorAction SilentlyContinue
+            Restart-Service $pgService.Name -Force
+            Start-Sleep -Seconds 3
+            $env:PGPASSWORD = $PgSuperPassword
+        }
+    }
+}
+
 if (-not $ready) {
     throw @"
-Nao foi possivel conectar ao PostgreSQL em localhost:$DbPort como usuario 'postgres'.
-Causa mais provavel: o PostgreSQL ja estava instalado nesta maquina com uma senha
-de superusuario DIFERENTE de '$PgSuperPassword'.
-Solucao: rode o script informando a senha real do usuario 'postgres', ex.:
-    .\setup-windows.ps1 -PgSuperPassword "SUA_SENHA_DO_POSTGRES"
+Nao foi possivel conectar ao PostgreSQL em localhost:$DbPort como usuario 'postgres'
+e a redefinicao automatica da senha tambem nao funcionou.
+Saidas possiveis:
+  1) Se voce SOUBER a senha do 'postgres', rode:
+        .\setup-windows.ps1 -PgSuperPassword "SUA_SENHA"
+  2) Para comecar limpo, desinstale o PostgreSQL atual e rode o setup de novo
+     (o script reinstala com a senha 'postgres'):
+        .\uninstall-windows.ps1 -RemovePostgres -KeepPackages -Force
+     (apague tambem a pasta de dados, ex. C:\Program Files\PostgreSQL\<versao>\data)
 "@
 }
 
