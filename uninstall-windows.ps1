@@ -85,6 +85,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administra
 
 if ($All) { $RemovePostgres = $true; $RemoveNode = $true; $RemoveGit = $true; $RemoveChocolatey = $true }
 
+try {
+
 Write-Host '================================================================' -ForegroundColor White
 Write-Host '  Contabilis — desinstalação' -ForegroundColor White
 Write-Host '================================================================' -ForegroundColor White
@@ -223,5 +225,17 @@ Write-Host ''
 Write-Host '================================================================' -ForegroundColor Green
 Write-Host '  Desinstalação concluída.' -ForegroundColor Green
 Write-Host '================================================================' -ForegroundColor Green
-Write-Host ''
-Read-Host 'Pressione Enter para fechar esta janela'
+
+}
+catch {
+    Write-Host ''
+    Write-Host '  A DESINSTALAÇÃO FALHOU' -ForegroundColor Red
+    Write-Host "Erro: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.InvocationInfo) {
+        Write-Host "Em   : linha $($_.InvocationInfo.ScriptLineNumber) — $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkYellow
+    }
+}
+finally {
+    Write-Host ''
+    Read-Host 'Pressione Enter para fechar esta janela'
+}

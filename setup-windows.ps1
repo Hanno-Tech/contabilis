@@ -87,6 +87,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administra
     return
 }
 
+try {
+
 Write-Host '================================================================' -ForegroundColor White
 Write-Host '  Contabilis — instalação do zero no Windows' -ForegroundColor White
 Write-Host '================================================================' -ForegroundColor White
@@ -164,7 +166,15 @@ for ($i = 0; $i -lt 30 -and -not $ready; $i++) {
     & $psql @psqlBase -tAc 'SELECT 1' *> $null
     if ($LASTEXITCODE -eq 0) { $ready = $true } else { Start-Sleep -Seconds 2 }
 }
-if (-not $ready) { throw "Não foi possível conectar ao PostgreSQL em localhost:$DbPort." }
+if (-not $ready) {
+    throw @"
+Não foi possível conectar ao PostgreSQL em localhost:$DbPort como usuário 'postgres'.
+Causa mais provável: o PostgreSQL já estava instalado nesta máquina com uma senha
+de superusuário DIFERENTE de '$PgSuperPassword'.
+Solução: rode o script informando a senha real do usuário 'postgres', ex.:
+    .\setup-windows.ps1 -PgSuperPassword "SUA_SENHA_DO_POSTGRES"
+"@
+}
 
 # Cria a role (idempotente).
 $roleExists = ((& $psql @psqlBase -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DbUser'") -join '').Trim()
@@ -289,5 +299,21 @@ Write-Host "  API  : http://localhost:$BackendPort/api" -ForegroundColor Green
 Write-Host '  Login: gisele / contabilis   (ou admin / contabilis)' -ForegroundColor Green
 Write-Host '================================================================' -ForegroundColor Green
 Write-Host 'As janelas da API e do App ficam abertas. Feche-as para parar.' -ForegroundColor DarkGray
-Write-Host ''
-Read-Host 'Pressione Enter para fechar esta janela de instalação'
+
+}
+catch {
+    Write-Host ''
+    Write-Host '================================================================' -ForegroundColor Red
+    Write-Host '  A INSTALAÇÃO FALHOU' -ForegroundColor Red
+    Write-Host '================================================================' -ForegroundColor Red
+    Write-Host "Erro: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.InvocationInfo) {
+        Write-Host "Em   : linha $($_.InvocationInfo.ScriptLineNumber) — $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkYellow
+    }
+    Write-Host ''
+    Write-Host 'Copie a mensagem acima. O script é idempotente: corrija a causa e rode de novo.' -ForegroundColor Yellow
+}
+finally {
+    Write-Host ''
+    Read-Host 'Pressione Enter para fechar esta janela'
+}
