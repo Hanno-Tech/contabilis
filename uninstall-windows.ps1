@@ -46,6 +46,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Ver setup-windows.ps1: evita que exit code != 0 do psql vire erro terminante.
+$PSNativeCommandUseErrorActionPreference = $false
 
 function Write-Step([string]$m) { Write-Host ''; Write-Host "==> $m" -ForegroundColor Cyan }
 function Write-Ok([string]$m)   { Write-Host "    [ok] $m" -ForegroundColor Green }

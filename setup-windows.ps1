@@ -43,6 +43,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# No PowerShell 7.3+ um exit code != 0 de programa externo vira erro terminante
+# quando ErrorActionPreference = Stop. Desligamos isso para poder checar o
+# $LASTEXITCODE do psql nos lacos (testar senhas, esperar o servidor subir).
+# (variavel inexistente no Windows PowerShell 5.1 -- atribuicao e inofensiva la)
+$PSNativeCommandUseErrorActionPreference = $false
 
 # ----------------------------------------------------------------------------
 # Utilidades
