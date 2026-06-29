@@ -1,25 +1,25 @@
 <#
 .SYNOPSIS
-    Desinstala o Contabilis de uma máquina Windows (desfaz o setup-windows.ps1).
+    Desinstala o Contabilis de uma maquina Windows (desfaz o setup-windows.ps1).
 
 .DESCRIPTION
     Remove tudo o que o instalador criou:
 
-      1. Encerra a API e o App (processos node em execução na pasta do projeto).
+      1. Encerra a API e o App (processos node em execucao na pasta do projeto).
       2. Remove o alias http://contabilis.local do arquivo hosts.
-      3. Apaga o banco e o usuário "contabilis" do PostgreSQL.
+      3. Apaga o banco e o usuario "contabilis" do PostgreSQL.
       4. Apaga a pasta do projeto clonado.
-      5. (Opcional) Desinstala PostgreSQL, Node.js, Git e o próprio Chocolatey.
+      5. (Opcional) Desinstala PostgreSQL, Node.js, Git e o proprio Chocolatey.
 
-    Por segurança, os passos 1–4 (específicos do app) rodam direto, mas a
-    desinstalação dos programas do sistema (passo 5) é PERGUNTADA — afinal Node,
+    Por seguranca, os passos 1-4 (especificos do app) rodam direto, mas a
+    desinstalacao dos programas do sistema (passo 5) e PERGUNTADA -- afinal Node,
     Git e PostgreSQL podem estar em uso por outros projetos. Use as flags
     abaixo para rodar sem perguntas.
 
 .NOTES
     Uso interativo:  rode  uninstall-windows.bat  (duplo-clique).
     Tirar TUDO sem perguntar:   .\uninstall-windows.ps1 -All -Force
-    Tirar só o app, manter programas:   .\uninstall-windows.ps1 -KeepPackages -Force
+    Tirar so o app, manter programas:   .\uninstall-windows.ps1 -KeepPackages -Force
 #>
 
 [CmdletBinding()]
@@ -40,9 +40,9 @@ param(
     [switch]$RemoveGit,         # desinstala o Git
     [switch]$RemoveChocolatey,  # desinstala o Chocolatey
     [switch]$All,               # = -RemovePostgres -RemoveNode -RemoveGit -RemoveChocolatey
-    [switch]$KeepPackages,      # mantém todos os programas (não pergunta)
+    [switch]$KeepPackages,      # mantem todos os programas (nao pergunta)
     [switch]$KeepDatabaseServer,# alias legado para -KeepPackages no Postgres
-    [switch]$Force              # não pede confirmação
+    [switch]$Force              # nao pede confirmacao
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,7 +52,7 @@ function Write-Ok([string]$m)   { Write-Host "    [ok] $m" -ForegroundColor Gree
 function Write-Info([string]$m) { Write-Host "    $m" -ForegroundColor DarkGray }
 function Write-Warn([string]$m) { Write-Host "    [!] $m" -ForegroundColor Yellow }
 
-# Pergunta sim/não, a menos que -Force ou flags já tenham decidido.
+# Pergunta sim/nao, a menos que -Force ou flags ja tenham decidido.
 function Confirm-Action([string]$question, [bool]$preset) {
     if ($preset) { return $true }
     if ($Force)  { return $false }
@@ -61,12 +61,12 @@ function Confirm-Action([string]$question, [bool]$preset) {
 }
 
 # ----------------------------------------------------------------------------
-# Auto-elevação para Administrador
+# Auto-elevacao para Administrador
 # ----------------------------------------------------------------------------
 $principal = New-Object Security.Principal.WindowsPrincipal(
     [Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Write-Host 'Solicitando privilégios de Administrador...' -ForegroundColor Yellow
+    Write-Host 'Solicitando privilegios de Administrador...' -ForegroundColor Yellow
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"",
         '-InstallDir', "`"$InstallDir`"", '-AliasHost', "`"$AliasHost`"",
         '-FrontendPort', $FrontendPort, '-BackendPort', $BackendPort,
@@ -88,20 +88,20 @@ if ($All) { $RemovePostgres = $true; $RemoveNode = $true; $RemoveGit = $true; $R
 try {
 
 Write-Host '================================================================' -ForegroundColor White
-Write-Host '  Contabilis — desinstalação' -ForegroundColor White
+Write-Host '  Contabilis -- desinstalacao' -ForegroundColor White
 Write-Host '================================================================' -ForegroundColor White
 Write-Info "Pasta do projeto : $InstallDir"
 Write-Info "Alias            : http://$AliasHost"
 if (-not $Force) {
-    if (-not (Confirm-Action 'Continuar com a desinstalação?' $false)) {
-        Write-Warn 'Cancelado pelo usuário.'; return
+    if (-not (Confirm-Action 'Continuar com a desinstalacao?' $false)) {
+        Write-Warn 'Cancelado pelo usuario.'; return
     }
 }
 
 # ----------------------------------------------------------------------------
 # 1. Encerrar a API e o App
 # ----------------------------------------------------------------------------
-Write-Step 'Encerrando processos da aplicação'
+Write-Step 'Encerrando processos da aplicacao'
 $killed = 0
 
 # (a) processos node cuja linha de comando aponta para a pasta do projeto.
@@ -145,9 +145,9 @@ if (Test-Path $hostsFile) {
 }
 
 # ----------------------------------------------------------------------------
-# 3. Apagar o banco e o usuário da aplicação
+# 3. Apagar o banco e o usuario da aplicacao
 # ----------------------------------------------------------------------------
-Write-Step 'Removendo o banco e o usuário do PostgreSQL'
+Write-Step 'Removendo o banco e o usuario do PostgreSQL'
 $psql = Get-Command psql -ErrorAction SilentlyContinue | Select-Object -First 1 -Expand Source
 if (-not $psql) {
     $psql = Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\psql.exe' -ErrorAction SilentlyContinue |
@@ -169,11 +169,11 @@ if ($psql) {
         & $psql @base -c "DROP ROLE IF EXISTS $DbUser;" 2>$null
         Write-Ok "Banco e role '$DbName' removidos."
     } else {
-        Write-Warn 'Não foi possível conectar ao PostgreSQL — pulei a remoção do banco.'
+        Write-Warn 'Nao foi possivel conectar ao PostgreSQL -- pulei a remocao do banco.'
     }
     Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
 } else {
-    Write-Info 'psql não encontrado — PostgreSQL provavelmente já não está instalado.'
+    Write-Info 'psql nao encontrado -- PostgreSQL provavelmente ja nao esta instalado.'
 }
 
 # ----------------------------------------------------------------------------
@@ -184,10 +184,10 @@ if (Test-Path $InstallDir) {
     if (Confirm-Action "Apagar definitivamente '$InstallDir'?" $true) {
         Remove-Item -LiteralPath $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
         if (Test-Path $InstallDir) {
-            Write-Warn "Não foi possível apagar tudo (arquivo em uso?). Tente de novo após fechar editores/terminais."
+            Write-Warn "Nao foi possivel apagar tudo (arquivo em uso?). Tente de novo apos fechar editores/terminais."
         } else { Write-Ok "Pasta '$InstallDir' removida." }
     } else { Write-Info 'Pasta mantida.' }
-} else { Write-Ok 'Pasta do projeto já não existe.' }
+} else { Write-Ok 'Pasta do projeto ja nao existe.' }
 
 # ----------------------------------------------------------------------------
 # 5. Desinstalar os programas de sistema (opcional)
@@ -198,7 +198,7 @@ if ($KeepPackages) {
 } else {
     $choco = Get-Command choco -ErrorAction SilentlyContinue
     if (-not $choco) {
-        Write-Info 'Chocolatey não encontrado — não há como desinstalar os pacotes por aqui.'
+        Write-Info 'Chocolatey nao encontrado -- nao ha como desinstalar os pacotes por aqui.'
     } else {
         if (Confirm-Action 'Desinstalar o PostgreSQL?' $RemovePostgres) {
             choco uninstall postgresql -y --no-progress 2>$null
@@ -212,7 +212,7 @@ if ($KeepPackages) {
             choco uninstall git -y --no-progress 2>$null
             Write-Ok 'Git desinstalado.'
         }
-        if (Confirm-Action 'Desinstalar o próprio Chocolatey?' $RemoveChocolatey) {
+        if (Confirm-Action 'Desinstalar o proprio Chocolatey?' $RemoveChocolatey) {
             $chocoDir = $env:ChocolateyInstall
             if (-not $chocoDir) { $chocoDir = 'C:\ProgramData\chocolatey' }
             if (Test-Path $chocoDir) { Remove-Item -LiteralPath $chocoDir -Recurse -Force -ErrorAction SilentlyContinue }
@@ -223,16 +223,16 @@ if ($KeepPackages) {
 
 Write-Host ''
 Write-Host '================================================================' -ForegroundColor Green
-Write-Host '  Desinstalação concluída.' -ForegroundColor Green
+Write-Host '  Desinstalacao concluida.' -ForegroundColor Green
 Write-Host '================================================================' -ForegroundColor Green
 
 }
 catch {
     Write-Host ''
-    Write-Host '  A DESINSTALAÇÃO FALHOU' -ForegroundColor Red
+    Write-Host '  A DESINSTALACAO FALHOU' -ForegroundColor Red
     Write-Host "Erro: $($_.Exception.Message)" -ForegroundColor Red
     if ($_.InvocationInfo) {
-        Write-Host "Em   : linha $($_.InvocationInfo.ScriptLineNumber) — $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkYellow
+        Write-Host "Em   : linha $($_.InvocationInfo.ScriptLineNumber) -- $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkYellow
     }
 }
 finally {

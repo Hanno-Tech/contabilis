@@ -1,27 +1,27 @@
 <#
 .SYNOPSIS
-    Instalação do zero do Contabilis em uma máquina Windows.
+    Instalacao do zero do Contabilis em uma maquina Windows.
 
 .DESCRIPTION
-    Faz TUDO, sem precisar de Node, Docker ou qualquer pré-requisito instalado:
+    Faz TUDO, sem precisar de Node, Docker ou qualquer pre-requisito instalado:
 
       1. Instala o Chocolatey (gerenciador de pacotes do Windows).
       2. Instala Git, Node.js LTS e PostgreSQL (nativo, sem Docker).
-      3. Cria o usuário e o banco "contabilis" no PostgreSQL.
+      3. Cria o usuario e o banco "contabilis" no PostgreSQL.
       4. Clona https://github.com/Hanno-Tech/contabilis.git.
       5. Gera os arquivos .env do backend e do frontend.
-      6. Instala dependências, roda as migrations e o seed.
+      6. Instala dependencias, roda as migrations e o seed.
       7. Cria o alias http://contabilis.local no arquivo hosts.
       8. Sobe o backend (API) e o frontend (app) em janelas separadas.
       9. Abre o navegador em http://contabilis.local.
 
-    O script é idempotente: pode ser executado várias vezes sem efeitos colaterais.
-    Ele se auto-eleva para Administrador (necessário para instalar programas,
+    O script e idempotente: pode ser executado varias vezes sem efeitos colaterais.
+    Ele se auto-eleva para Administrador (necessario para instalar programas,
     editar o arquivo hosts e servir o app na porta 80).
 
 .NOTES
-    Uso:  clique com o botão direito > "Executar com o PowerShell"
-          ou rode  setup-windows.bat  (que cuida da política de execução).
+    Uso:  clique com o botao direito > "Executar com o PowerShell"
+          ou rode  setup-windows.bat  (que cuida da politica de execucao).
 #>
 
 [CmdletBinding()]
@@ -32,13 +32,13 @@ param(
     [int]   $FrontendPort = 80,
     [int]   $BackendPort  = 3333,
 
-    # Credenciais do banco da aplicação (devem casar com o DATABASE_URL do .env).
+    # Credenciais do banco da aplicacao (devem casar com o DATABASE_URL do .env).
     [string]$DbName      = 'contabilis',
     [string]$DbUser      = 'contabilis',
     [string]$DbPassword  = 'contabilis',
     [int]   $DbPort      = 5432,
 
-    # Senha do superusuário "postgres" definida na instalação do PostgreSQL.
+    # Senha do superusuario "postgres" definida na instalacao do PostgreSQL.
     [string]$PgSuperPassword = 'postgres'
 )
 
@@ -54,8 +54,8 @@ function Write-Step([string]$Message) {
 function Write-Ok([string]$Message)   { Write-Host "    [ok] $Message" -ForegroundColor Green }
 function Write-Info([string]$Message) { Write-Host "    $Message" -ForegroundColor DarkGray }
 
-# Recarrega o PATH (Machine + User) na sessão atual, para que programas recém
-# instalados pelo Chocolatey fiquem disponíveis sem reiniciar o terminal.
+# Recarrega o PATH (Machine + User) na sessao atual, para que programas recem
+# instalados pelo Chocolatey fiquem disponiveis sem reiniciar o terminal.
 function Update-SessionPath {
     $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
     $user    = [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -63,12 +63,12 @@ function Update-SessionPath {
 }
 
 # ----------------------------------------------------------------------------
-# 0. Auto-elevação para Administrador
+# 0. Auto-elevacao para Administrador
 # ----------------------------------------------------------------------------
 $principal = New-Object Security.Principal.WindowsPrincipal(
     [Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Write-Host 'Solicitando privilégios de Administrador...' -ForegroundColor Yellow
+    Write-Host 'Solicitando privilegios de Administrador...' -ForegroundColor Yellow
     $argList = @(
         '-NoProfile', '-ExecutionPolicy', 'Bypass',
         '-File', "`"$PSCommandPath`"",
@@ -90,9 +90,9 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administra
 try {
 
 Write-Host '================================================================' -ForegroundColor White
-Write-Host '  Contabilis — instalação do zero no Windows' -ForegroundColor White
+Write-Host '  Contabilis -- instalacao do zero no Windows' -ForegroundColor White
 Write-Host '================================================================' -ForegroundColor White
-Write-Info "Repositório : $RepoUrl"
+Write-Info "Repositorio : $RepoUrl"
 Write-Info "Destino     : $InstallDir"
 Write-Info "Alias       : http://$AliasHost"
 
@@ -109,7 +109,7 @@ if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     Update-SessionPath
     Write-Ok 'Chocolatey instalado.'
 } else {
-    Write-Ok 'Chocolatey já presente.'
+    Write-Ok 'Chocolatey ja presente.'
 }
 
 # ----------------------------------------------------------------------------
@@ -119,48 +119,48 @@ Write-Step 'Instalando Git, Node.js LTS e PostgreSQL'
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     choco install git -y --no-progress
-} else { Write-Ok 'Git já presente.' }
+} else { Write-Ok 'Git ja presente.' }
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     choco install nodejs-lts -y --no-progress
-} else { Write-Ok "Node.js já presente ($(node -v))." }
+} else { Write-Ok "Node.js ja presente ($(node -v))." }
 
-# PostgreSQL nativo (substitui o Docker). A senha do superusuário "postgres"
-# é definida aqui para que possamos criar o banco da aplicação em seguida.
+# PostgreSQL nativo (substitui o Docker). A senha do superusuario "postgres"
+# e definida aqui para que possamos criar o banco da aplicacao em seguida.
 $pgInstalled = Get-Service -Name 'postgresql*' -ErrorAction SilentlyContinue
 if (-not $pgInstalled) {
     choco install postgresql -y --no-progress --params "/Password:$PgSuperPassword"
-} else { Write-Ok 'PostgreSQL já presente.' }
+} else { Write-Ok 'PostgreSQL ja presente.' }
 
 Update-SessionPath
 Write-Ok 'Pacotes instalados.'
 
 # ----------------------------------------------------------------------------
-# 3. Configurar o banco da aplicação
+# 3. Configurar o banco da aplicacao
 # ----------------------------------------------------------------------------
 Write-Step 'Configurando o banco PostgreSQL'
 
-# Garante o serviço rodando.
+# Garante o servico rodando.
 $pgService = Get-Service -Name 'postgresql*' -ErrorAction SilentlyContinue |
     Select-Object -First 1
 if ($pgService -and $pgService.Status -ne 'Running') {
     Start-Service $pgService.Name
-    Write-Info "Serviço $($pgService.Name) iniciado."
+    Write-Info "Servico $($pgService.Name) iniciado."
 }
 
-# Localiza o psql.exe da maior versão instalada.
+# Localiza o psql.exe da maior versao instalada.
 $psql = Get-Command psql -ErrorAction SilentlyContinue | Select-Object -First 1 -Expand Source
 if (-not $psql) {
     $psql = Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\psql.exe' -ErrorAction SilentlyContinue |
         Sort-Object FullName -Descending | Select-Object -First 1 -Expand FullName
 }
-if (-not $psql) { throw 'psql.exe não encontrado — verifique a instalação do PostgreSQL.' }
+if (-not $psql) { throw 'psql.exe nao encontrado -- verifique a instalacao do PostgreSQL.' }
 Write-Info "psql: $psql"
 
 $env:PGPASSWORD = $PgSuperPassword
 $psqlBase = @('-v', 'ON_ERROR_STOP=1', '-h', 'localhost', '-p', "$DbPort", '-U', 'postgres', '-d', 'postgres')
 
-# Aguarda o servidor aceitar conexões (recém-instalado pode demorar alguns segundos).
+# Aguarda o servidor aceitar conexoes (recem-instalado pode demorar alguns segundos).
 $ready = $false
 for ($i = 0; $i -lt 30 -and -not $ready; $i++) {
     & $psql @psqlBase -tAc 'SELECT 1' *> $null
@@ -168,10 +168,10 @@ for ($i = 0; $i -lt 30 -and -not $ready; $i++) {
 }
 if (-not $ready) {
     throw @"
-Não foi possível conectar ao PostgreSQL em localhost:$DbPort como usuário 'postgres'.
-Causa mais provável: o PostgreSQL já estava instalado nesta máquina com uma senha
-de superusuário DIFERENTE de '$PgSuperPassword'.
-Solução: rode o script informando a senha real do usuário 'postgres', ex.:
+Nao foi possivel conectar ao PostgreSQL em localhost:$DbPort como usuario 'postgres'.
+Causa mais provavel: o PostgreSQL ja estava instalado nesta maquina com uma senha
+de superusuario DIFERENTE de '$PgSuperPassword'.
+Solucao: rode o script informando a senha real do usuario 'postgres', ex.:
     .\setup-windows.ps1 -PgSuperPassword "SUA_SENHA_DO_POSTGRES"
 "@
 }
@@ -181,32 +181,32 @@ $roleExists = ((& $psql @psqlBase -tAc "SELECT 1 FROM pg_roles WHERE rolname='$D
 if ($roleExists -ne '1') {
     & $psql @psqlBase -c "CREATE ROLE $DbUser WITH LOGIN PASSWORD '$DbPassword' SUPERUSER;"
     Write-Ok "Role '$DbUser' criada."
-} else { Write-Ok "Role '$DbUser' já existe." }
+} else { Write-Ok "Role '$DbUser' ja existe." }
 
 # Cria o banco (idempotente).
 $dbExists = ((& $psql @psqlBase -tAc "SELECT 1 FROM pg_database WHERE datname='$DbName'") -join '').Trim()
 if ($dbExists -ne '1') {
     & $psql @psqlBase -c "CREATE DATABASE $DbName OWNER $DbUser;"
     Write-Ok "Banco '$DbName' criado."
-} else { Write-Ok "Banco '$DbName' já existe." }
+} else { Write-Ok "Banco '$DbName' ja existe." }
 
 Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
 
 # ----------------------------------------------------------------------------
-# 4. Clonar o repositório
+# 4. Clonar o repositorio
 # ----------------------------------------------------------------------------
-Write-Step 'Clonando o repositório'
+Write-Step 'Clonando o repositorio'
 if (Test-Path (Join-Path $InstallDir '.git')) {
-    Write-Info 'Repositório já clonado — atualizando (git pull)...'
+    Write-Info 'Repositorio ja clonado -- atualizando (git pull)...'
     git -C $InstallDir pull --ff-only
 } else {
     if (Test-Path $InstallDir) {
         $isEmpty = -not (Get-ChildItem -Force $InstallDir | Select-Object -First 1)
-        if (-not $isEmpty) { throw "$InstallDir já existe e não está vazio." }
+        if (-not $isEmpty) { throw "$InstallDir ja existe e nao esta vazio." }
     }
     git clone $RepoUrl $InstallDir
 }
-Write-Ok "Código em $InstallDir"
+Write-Ok "Codigo em $InstallDir"
 
 $BackendDir  = Join-Path $InstallDir 'backend'
 $FrontendDir = Join-Path $InstallDir 'frontend'
@@ -234,9 +234,9 @@ VITE_API_URL=http://localhost:$BackendPort/api
 Write-Ok "frontend/.env"
 
 # ----------------------------------------------------------------------------
-# 6. Dependências, migrations e seed
+# 6. Dependencias, migrations e seed
 # ----------------------------------------------------------------------------
-Write-Step 'Instalando dependências e preparando o banco'
+Write-Step 'Instalando dependencias e preparando o banco'
 
 Push-Location $BackendDir
 Write-Info 'backend: npm install'
@@ -264,12 +264,12 @@ $already = Select-String -Path $hostsFile -Pattern "\s$([regex]::Escape($AliasHo
 if (-not $already) {
     Add-Content -Path $hostsFile -Value "`r`n# Contabilis (alias local)`r`n$entry"
     Write-Ok "Alias adicionado ao hosts."
-} else { Write-Ok "Alias já registrado no hosts." }
+} else { Write-Ok "Alias ja registrado no hosts." }
 
 # ----------------------------------------------------------------------------
 # 8. Subir backend e frontend
 # ----------------------------------------------------------------------------
-Write-Step 'Subindo a aplicação'
+Write-Step 'Subindo a aplicacao'
 
 Start-Process -FilePath 'powershell.exe' -ArgumentList @(
     '-NoExit', '-NoProfile', '-Command',
@@ -293,7 +293,7 @@ Start-Process $appUrl
 
 Write-Host ''
 Write-Host '================================================================' -ForegroundColor Green
-Write-Host '  Pronto! Contabilis instalado e em execução.' -ForegroundColor Green
+Write-Host '  Pronto! Contabilis instalado e em execucao.' -ForegroundColor Green
 Write-Host "  App  : $appUrl" -ForegroundColor Green
 Write-Host "  API  : http://localhost:$BackendPort/api" -ForegroundColor Green
 Write-Host '  Login: gisele / contabilis   (ou admin / contabilis)' -ForegroundColor Green
@@ -304,14 +304,14 @@ Write-Host 'As janelas da API e do App ficam abertas. Feche-as para parar.' -For
 catch {
     Write-Host ''
     Write-Host '================================================================' -ForegroundColor Red
-    Write-Host '  A INSTALAÇÃO FALHOU' -ForegroundColor Red
+    Write-Host '  A INSTALACAO FALHOU' -ForegroundColor Red
     Write-Host '================================================================' -ForegroundColor Red
     Write-Host "Erro: $($_.Exception.Message)" -ForegroundColor Red
     if ($_.InvocationInfo) {
-        Write-Host "Em   : linha $($_.InvocationInfo.ScriptLineNumber) — $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkYellow
+        Write-Host "Em   : linha $($_.InvocationInfo.ScriptLineNumber) -- $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkYellow
     }
     Write-Host ''
-    Write-Host 'Copie a mensagem acima. O script é idempotente: corrija a causa e rode de novo.' -ForegroundColor Yellow
+    Write-Host 'Copie a mensagem acima. O script e idempotente: corrija a causa e rode de novo.' -ForegroundColor Yellow
 }
 finally {
     Write-Host ''
