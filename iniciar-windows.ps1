@@ -88,6 +88,22 @@ if (-not (Test-Path $FrontendDir)) { throw "Pasta do frontend nao encontrada: $F
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     throw 'Node.js nao encontrado no PATH. Rode setup-windows.bat primeiro.'
 }
+# Garante que o node.exe REALMENTE executa (nao basta estar no PATH). Um binario
+# corrompido ou de arquitetura errada falha com "nao e um aplicativo valido para
+# esta plataforma de SO" -- e melhor parar aqui do que ficar reiniciando em loop.
+$nodeVer = $null
+try { $nodeVer = & node -v 2>$null } catch { }
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($nodeVer)) {
+    throw @'
+O Node.js esta no PATH mas nao executa nesta maquina (node -v falhou).
+A instalacao pode estar corrompida ou ser da arquitetura errada (x64/x86/ARM64).
+Reinstale o Node.js LTS para a arquitetura desta maquina:
+  - baixe em https://nodejs.org (escolha o instalador certo: x64 ou ARM64); ou
+  - via Chocolatey (PowerShell admin):  choco upgrade nodejs-lts -y --force
+Depois feche e reabra o terminal e rode o iniciar-windows.bat de novo.
+'@
+}
+Write-Ok "Node.js OK ($nodeVer)."
 if (-not (Test-Path (Join-Path $BackendDir 'node_modules'))) {
     Write-Warn 'backend/node_modules ausente -- rode setup-windows.bat (ou npm install) antes.'
 }

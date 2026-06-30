@@ -26,7 +26,8 @@ param(
     # Ajustes de tempo (segundos).
     [int] $PollInterval   = 5,    # intervalo entre health checks
     [int] $WarmupSeconds  = 180,  # tempo para o 1o "ok" antes de considerar travado
-    [int] $FailSeconds    = 20    # tempo sem responder (apos ok) que dispara restart
+    [int] $FailSeconds    = 20,   # tempo sem responder (apos ok) que dispara restart
+    [int] $MaxFastFails   = 5     # falhas seguidas SEM nunca subir antes de desistir
 )
 
 $ErrorActionPreference = 'Continue'
@@ -60,7 +61,8 @@ $failPolls   = [Math]::Max(1, [int]($FailSeconds   / $PollInterval))
 
 Write-Log "iniciando supervisao (health: $HealthUrl)"
 
-$attempt = 0
+$attempt   = 0
+$fastFails = 0   # falhas seguidas em que o servico nunca chegou a responder
 while (-not (Test-Path $StopFlag)) {
     $attempt++
     if ($attempt -eq 1) { Write-Log 'subindo o servico (npm run dev)...' }
@@ -121,6 +123,18 @@ while (-not (Test-Path $StopFlag)) {
     }
 
     if (-not $restart) { break }                      # saiu por StopFlag
+
+    # Desiste se o servico fica falhando sem NUNCA chegar a responder -- sinal de
+    # erro de instalacao/config (ex.: node.exe quebrado), nao de queda passageira.
+    if ($healthy) {
+        $fastFails = 0
+    } else {
+        $fastFails++
+        if ($fastFails -ge $MaxFastFails) {
+            Write-Log "falhou ao iniciar $fastFails vezes seguidas sem responder -- desistindo. Veja $LogFile para o erro do npm/node."
+            break
+        }
+    }
     Start-Sleep -Seconds 2                            # pequena pausa antes do restart
 }
 
