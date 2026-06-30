@@ -30,6 +30,18 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 
+# Resolve a pasta do projeto de forma robusta: $PSScriptRoot pode vir vazio
+# dependendo de como o script foi disparado/elevado. Cai para o diretorio do
+# proprio arquivo e, por fim, para o diretorio atual. Sem barra final (evita
+# que a aspas de fechamento seja escapada ao repassar o argumento na elevacao).
+if ([string]::IsNullOrWhiteSpace($ProjectDir)) {
+    $ProjectDir =
+        if    ($PSScriptRoot)   { $PSScriptRoot }
+        elseif ($PSCommandPath) { Split-Path -Parent $PSCommandPath }
+        else                    { (Get-Location).Path }
+}
+$ProjectDir = $ProjectDir.TrimEnd('\')
+
 # ----------------------------------------------------------------------------
 # Utilidades
 # ----------------------------------------------------------------------------

@@ -21,6 +21,15 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 
+# $PSScriptRoot pode vir vazio dependendo de como o script foi disparado/elevado.
+if ([string]::IsNullOrWhiteSpace($ProjectDir)) {
+    $ProjectDir =
+        if    ($PSScriptRoot)   { $PSScriptRoot }
+        elseif ($PSCommandPath) { Split-Path -Parent $PSCommandPath }
+        else                    { (Get-Location).Path }
+}
+$ProjectDir = $ProjectDir.TrimEnd('\')
+
 function Write-Info([string]$Message) { Write-Host "    $Message" -ForegroundColor DarkGray }
 function Write-Ok([string]$Message)   { Write-Host "    [ok] $Message" -ForegroundColor Green }
 
