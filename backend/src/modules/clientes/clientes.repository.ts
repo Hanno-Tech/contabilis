@@ -270,6 +270,7 @@ export async function getFicha(id: string) {
       'cliente_sindicatos.sindicato',
       'cliente_sindicatos.convencao_id',
       'cliente_sindicatos.convencao_aplicavel_nome',
+      'cliente_sindicatos.situacao_convencao',
       'cliente_sindicatos.recolhe_contribuicao',
       'cliente_sindicatos.ordem',
       'convencoes.apelido as convencao_apelido',
@@ -312,12 +313,20 @@ async function replaceSindicatos(
   if (sindicatos === undefined) return; // não enviado — não mexe
   await trx.deleteFrom('cliente_sindicatos').where('cliente_id', '=', clienteId).execute();
   const rows = sindicatos
-    .filter((s) => s.sindicato || s.convencao_id || s.convencao_aplicavel_nome || s.recolhe_contribuicao)
+    .filter(
+      (s) =>
+        s.sindicato ||
+        s.convencao_id ||
+        s.convencao_aplicavel_nome ||
+        s.situacao_convencao ||
+        s.recolhe_contribuicao,
+    )
     .map((s, i) => ({
       cliente_id: clienteId,
       sindicato: s.sindicato ?? null,
       convencao_id: s.convencao_id ?? null,
       convencao_aplicavel_nome: s.convencao_aplicavel_nome ?? null,
+      situacao_convencao: s.situacao_convencao ?? null,
       recolhe_contribuicao: s.recolhe_contribuicao ?? null,
       ordem: i,
     }));

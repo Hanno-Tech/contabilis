@@ -65,7 +65,7 @@ export async function writeAudit(args: WriteArgs): Promise<void> {
 // --------------------------------------------------------------------- Cliente
 
 type CredResumo = Array<{ tipo: string; link?: string | null; usuario: string | null; email: string | null; tem_senha: boolean; tem_email_senha: boolean }>;
-type SindicatoResumo = Array<{ sindicato?: string | null; convencao_id?: string | null; convencao_aplicavel_nome?: string | null; recolhe_contribuicao?: string | null }>;
+type SindicatoResumo = Array<{ sindicato?: string | null; convencao_id?: string | null; convencao_aplicavel_nome?: string | null; situacao_convencao?: string | null; recolhe_contribuicao?: string | null }>;
 
 interface ClienteSnapshot {
   id: string;
@@ -93,7 +93,7 @@ function credResumo(snap: { credenciais?: CredResumo } | null): string {
 function sindicatosResumo(snap: { sindicatos?: SindicatoResumo } | null): string {
   if (!snap?.sindicatos) return '';
   return snap.sindicatos
-    .map((s) => `${s.sindicato ?? ''}:${s.convencao_id ?? ''}:${s.convencao_aplicavel_nome ?? ''}:${s.recolhe_contribuicao ?? ''}`)
+    .map((s) => `${s.sindicato ?? ''}:${s.convencao_id ?? ''}:${s.convencao_aplicavel_nome ?? ''}:${s.situacao_convencao ?? ''}:${s.recolhe_contribuicao ?? ''}`)
     .join('|');
 }
 

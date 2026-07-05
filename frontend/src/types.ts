@@ -97,6 +97,7 @@ export interface ClienteSindicato {
   sindicato: string | null;
   convencao_id: string | null;
   convencao_aplicavel_nome: string | null;
+  situacao_convencao: string | null;
   recolhe_contribuicao: string | null;
   ordem?: number;
   convencao_apelido?: string | null;

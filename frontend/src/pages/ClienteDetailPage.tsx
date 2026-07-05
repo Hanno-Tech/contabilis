@@ -162,7 +162,7 @@ export function ClienteDetailPage() {
           <ReadField label="Responsável pelo fechamento da folha" value={folha.responsavel_fechamento_folha} />
           <ReadField label="Gera folha e relatórios pela rotina automática?" value={folha.folha_rotina_automatica} />
           <ReadField label="Código da rotina automática" value={folha.codigo_rotina_automatica} />
-          <ReadField label="Data meta da entrega da folha" value={formatDate(folha.data_meta_entrega_folha)} />
+          <ReadField label="Meta de entrega da folha" value={folha.data_meta_entrega_folha} />
           <ReadField label="Apura o ponto pelo escritório?" value={folha.apura_ponto_escritorio} />
           <ReadField label="Realiza lançamentos?" value={folha.realiza_lancamentos} />
           <ReadField label="Informações importantes no fechamento da folha" value={folha.observacoes_folha} wide pre />
@@ -193,7 +193,7 @@ export function ClienteDetailPage() {
                     )
                   }
                 />
-                <ReadField label="Situação da convenção" value={s.convencao_situacao} />
+                <ReadField label="Situação da convenção" value={s.situacao_convencao} />
                 <ReadField label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao} />
               </Grid>
             </Box>

@@ -62,6 +62,7 @@ const sindicatoSchema = z.object({
   sindicato: text,
   convencao_id: z.string().uuid().nullable().optional(),
   convencao_aplicavel_nome: text,
+  situacao_convencao: text,
   recolhe_contribuicao: text,
 });
 
@@ -87,7 +88,7 @@ export const folhaInputSchema = z.object({
   folha_rotina_automatica: text,
   responsavel_fechamento_folha: text,
   codigo_rotina_automatica: text,
-  data_meta_entrega_folha: dateStr,
+  data_meta_entrega_folha: text,
   // Admissão
   prazo_contrato_experiencia: text,
   lancamentos_fixos: text,

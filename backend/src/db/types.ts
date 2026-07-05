@@ -97,7 +97,7 @@ export interface ClienteFolhaTable {
   folha_rotina_automatica: string | null;
   responsavel_fechamento_folha: string | null;
   codigo_rotina_automatica: string | null;
-  data_meta_entrega_folha: DateOnly | null;
+  data_meta_entrega_folha: string | null;
   // Admissão
   prazo_contrato_experiencia: string | null;
   lancamentos_fixos: string | null;
@@ -161,7 +161,8 @@ export interface ClienteSindicatosTable {
   sindicato: string | null;
   convencao_id: string | null;
   convencao_aplicavel_nome: string | null;
-  recolhe_contribuicao: string | null; // 'Sim' | 'Não'
+  situacao_convencao: string | null; // 'Vigente' | 'Vencida' | 'Não se aplica'
+  recolhe_contribuicao: string | null; // 'Sim' | 'Não' | 'Não se aplica'
   ordem: Generated<number>;
 }
 

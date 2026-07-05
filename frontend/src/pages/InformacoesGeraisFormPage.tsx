@@ -18,9 +18,23 @@ import { apiErrorMessage, isConflict } from '../api/client';
 import { createCliente, fetchCliente, updateCliente } from '../api/resources';
 import { SectionCard, formatDocumento, isValidDocumento } from '../components/ui';
 
-const SITUACOES = ['Ativa', 'Suspensa', 'Baixada', 'Inativa'];
+const SITUACOES = ['Ativa', 'Ativa sem movimento', 'Baixada', 'Devolvida', 'Transferida', 'Paralisada', 'Em constituição'];
+const TIPO_CLIENTE_OPCOES = [
+  'Empresa normal',
+  'MEI',
+  'Empregador doméstico',
+  'Contribuinte Facultativo',
+  'Contribuinte Individual',
+  'Empregador rural',
+  'Associação',
+];
+const REGIME_OPCOES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real', 'SIMEI', 'Não se aplica'];
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
+
+/** Garante que um valor já gravado apareça na lista mesmo se não for uma das opções padrão. */
+const withCurrent = (opcoes: string[], atual: string) =>
+  atual && !opcoes.includes(atual) ? [...opcoes, atual] : opcoes;
 
 interface FormState {
   codigo: string;
@@ -169,17 +183,27 @@ export function InformacoesGeraisFormPage({ mode }: { mode: 'create' | 'edit' })
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField label="Tipo" value={form.tipo_cliente} onChange={(e) => setField('tipo_cliente', e.target.value)} fullWidth size="small" />
+            <TextField select label="Tipo" value={form.tipo_cliente} onChange={(e) => setField('tipo_cliente', e.target.value)} fullWidth size="small">
+              <MenuItem value=""><em>Não informado</em></MenuItem>
+              {withCurrent(TIPO_CLIENTE_OPCOES, form.tipo_cliente).map((s) => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField label="Regime de tributação" value={form.regime_tributacao} onChange={(e) => setField('regime_tributacao', e.target.value)} fullWidth size="small" />
+            <TextField select label="Regime de tributação" value={form.regime_tributacao} onChange={(e) => setField('regime_tributacao', e.target.value)} fullWidth size="small">
+              <MenuItem value=""><em>Não informado</em></MenuItem>
+              {withCurrent(REGIME_OPCOES, form.regime_tributacao).map((s) => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField label="Responsável" value={form.responsavel} onChange={(e) => setField('responsavel', e.target.value)} fullWidth size="small" />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField select label="Situação" value={form.situacao} onChange={(e) => setField('situacao', e.target.value)} fullWidth size="small">
-              {SITUACOES.map((s) => (
+              {withCurrent(SITUACOES, form.situacao).map((s) => (
                 <MenuItem key={s} value={s}>
                   {s}
                 </MenuItem>

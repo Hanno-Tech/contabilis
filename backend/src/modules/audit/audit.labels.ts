@@ -37,7 +37,7 @@ export const CLIENTE_FOLHA_LABELS: Record<string, string> = {
   folha_rotina_automatica: 'Rotina automática da folha',
   responsavel_fechamento_folha: 'Responsável pelo fechamento da folha',
   codigo_rotina_automatica: 'Código da rotina automática',
-  data_meta_entrega_folha: 'Data meta da entrega da folha',
+  data_meta_entrega_folha: 'Meta de entrega da folha',
   // Admissão
   prazo_contrato_experiencia: 'Prazo do contrato de experiência',
   lancamentos_fixos: 'Lançamentos fixos',

@@ -6,7 +6,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Divider,
   Grid,
@@ -35,7 +34,32 @@ interface FieldDef {
 
 const FORMA_ENVIO_OPCOES = ['Físico', 'Gestta Messenger', 'Gestta Tarefas', 'Portal do cliente'];
 const TIPO_SEGURADO_OPCOES = ['Autônomo', 'Facultativo'];
-const SIM_NAO = ['Sim', 'Não'];
+const SIM_NAO_NA = ['Sim', 'Não', 'Não se aplica'];
+const OPERADORA_OPCOES = ['Saúde São José', 'Unimed', 'Não se aplica'];
+const BENEFICIARIOS_OPCOES = ['Colaborador', 'Colaborador e Dependente', 'Não se aplica'];
+const FORMA_PAGAMENTO_OPCOES = ['Dinheiro', 'Crédito em conta', 'Pix', 'Não se aplica'];
+const POSSUI_FOLHA_OPCOES = [
+  'Não possui',
+  'Possui apenas pró labore',
+  'Possui apenas folha',
+  'Possui folha e pró labore',
+  'Possui folha de empregado doméstico',
+  'Possui guia avulsa de INSS',
+  'Possui apenas RPA',
+  'Não se aplica',
+];
+const RESPONSAVEL_FOLHA_OPCOES = ['Priscila', 'Pâmela', 'Samuel', 'Fernanda'];
+const CODIGO_ROTINA_OPCOES = [
+  '11 - CÁLCULO PRÓ LABORES SIMPLES',
+  '12 - CÁLCULO EMPRESAS COM FUNCIONÁRIOS E SEM LANÇAMENTOS',
+  '13 - CÁLCULO EMPRESAS FATOR "R"',
+];
+const META_ENTREGA_OPCOES = ['Dia 26 do mês da folha', '1º dia útil', '2º dia útil', '3º dia útil'];
+const EMPRESA_SST_OPCOES = [
+  'Medset', 'Probem', 'Maxipas', 'Dra. Laura', 'Mioprev', 'Ergomed', 'MedIçara',
+  'Mais Proteção', 'Sesi', 'MedCri', 'Macroseg', 'Previ&Seg', 'CliniSeg', 'CliniMet', 'Não se aplica',
+];
+const SITUACAO_CONVENCAO_OPCOES = ['Vigente', 'Vencida', 'Não se aplica'];
 const TIPO_LABEL: Record<string, string> = {
   seguro_desemprego: 'Seguro Desemprego',
   empregado_domestico: 'Empregado Doméstico',
@@ -46,9 +70,9 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   {
     title: 'Informações tributárias',
     fields: [
-      { key: 'fator_r', label: 'Fator "R"?' },
-      { key: 'atividade_concomitante', label: 'Atividades concomitantes' },
-      { key: 'inss_retido_nf', label: 'INSS retido na NF?' },
+      { key: 'fator_r', label: 'Fator "R"?', type: 'select', options: SIM_NAO_NA },
+      { key: 'atividade_concomitante', label: 'Atividades concomitantes', type: 'select', options: SIM_NAO_NA },
+      { key: 'inss_retido_nf', label: 'INSS retido na NF?', type: 'select', options: SIM_NAO_NA },
       { key: 'construcao_civil', label: 'Construção civil?' },
       { key: 'cprb', label: 'CPRB?' },
       { key: 'encargos_recolhidos_escritorio', label: 'Encargos recolhidos pelo escritório', type: 'multiline', wide: true },
@@ -57,13 +81,13 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   {
     title: 'Admissão',
     fields: [
-      { key: 'concede_plano_saude', label: 'Concede plano de saúde?' },
-      { key: 'plano_operadora', label: 'Operadora do plano' },
-      { key: 'plano_beneficiarios', label: 'Beneficiários do plano' },
-      { key: 'forma_pagamento_salarios', label: 'Forma de pagamento dos salários' },
+      { key: 'concede_plano_saude', label: 'Concede plano de saúde?', type: 'select', options: SIM_NAO_NA },
+      { key: 'plano_operadora', label: 'Operadora do plano', type: 'select', options: OPERADORA_OPCOES },
+      { key: 'plano_beneficiarios', label: 'Beneficiários do plano', type: 'select', options: BENEFICIARIOS_OPCOES },
+      { key: 'forma_pagamento_salarios', label: 'Forma de pagamento dos salários', type: 'select', options: FORMA_PAGAMENTO_OPCOES },
       { key: 'prazo_contrato_experiencia', label: 'Prazo do contrato de experiência' },
-      { key: 'cargos_insalubres_perigosos', label: 'Possui cargos insalubres ou perigosos?' },
-      { key: 'lancamentos_fixos', label: 'Possui lançamentos fixos?', type: 'multiline', wide: true },
+      { key: 'cargos_insalubres_perigosos', label: 'Possui cargos insalubres ou perigosos?', type: 'select', options: SIM_NAO_NA },
+      { key: 'lancamentos_fixos', label: 'Possui lançamentos fixos?', type: 'select', options: SIM_NAO_NA },
       { key: 'relatorios_admissao', label: 'Relatórios admissionais', type: 'multiline', wide: true },
       { key: 'particularidades_cliente', label: 'Especificidades do cliente', type: 'multiline', wide: true },
     ],
@@ -71,23 +95,23 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   {
     title: 'Fechamento da folha',
     fields: [
-      { key: 'possui_folha', label: 'Possui folha?' },
-      { key: 'responsavel_fechamento_folha', label: 'Responsável pelo fechamento da folha' },
-      { key: 'folha_rotina_automatica', label: 'Gera folha e relatórios pela rotina automática?' },
-      { key: 'codigo_rotina_automatica', label: 'Código da rotina automática' },
-      { key: 'data_meta_entrega_folha', label: 'Data meta da entrega da folha', type: 'date' },
-      { key: 'apura_ponto_escritorio', label: 'Apura o ponto pelo escritório?' },
-      { key: 'realiza_lancamentos', label: 'Realiza lançamentos?' },
+      { key: 'possui_folha', label: 'Possui folha?', type: 'select', options: POSSUI_FOLHA_OPCOES },
+      { key: 'responsavel_fechamento_folha', label: 'Responsável pelo fechamento da folha', type: 'select', options: RESPONSAVEL_FOLHA_OPCOES },
+      { key: 'folha_rotina_automatica', label: 'Gera folha via rotina automática?', type: 'select', options: SIM_NAO_NA },
+      { key: 'codigo_rotina_automatica', label: 'Código da rotina automática', type: 'select', options: CODIGO_ROTINA_OPCOES },
+      { key: 'data_meta_entrega_folha', label: 'Meta de entrega da folha', type: 'select', options: META_ENTREGA_OPCOES },
+      { key: 'apura_ponto_escritorio', label: 'Apura o ponto pelo escritório?', type: 'select', options: SIM_NAO_NA },
+      { key: 'realiza_lancamentos', label: 'Realiza lançamentos?', type: 'select', options: SIM_NAO_NA },
       { key: 'observacoes_folha', label: 'Informações importantes no fechamento da folha', type: 'multiline', wide: true },
     ],
   },
   {
     title: 'Informações sobre SST',
     fields: [
-      { key: 'possui_laudos_sst', label: 'Possui laudo de SST?' },
-      { key: 'empresa_responsavel_sst', label: 'Empresa responsável' },
+      { key: 'possui_laudos_sst', label: 'Possui laudo de SST?', type: 'select', options: SIM_NAO_NA },
+      { key: 'empresa_responsavel_sst', label: 'Empresa responsável', type: 'select', options: EMPRESA_SST_OPCOES },
       { key: 'data_vencimento_laudo', label: 'Vencimento do laudo', type: 'date' },
-      { key: 'termo_ciencia_sst', label: 'Termo de ciência enviado (ausência de laudos)?' },
+      { key: 'termo_ciencia_sst', label: 'Termo de ciência enviado (ausência de laudos)?', type: 'select', options: SIM_NAO_NA },
     ],
   },
   {
@@ -187,11 +211,12 @@ export function ClienteFormPage() {
     }
 
     payload.sindicatos = sindicatos
-      .filter((s) => s.sindicato || s.convencao_id || s.convencao_aplicavel_nome || s.recolhe_contribuicao)
+      .filter((s) => s.sindicato || s.convencao_id || s.convencao_aplicavel_nome || s.situacao_convencao || s.recolhe_contribuicao)
       .map((s) => ({
         sindicato: s.sindicato || null,
         convencao_id: s.convencao_id || null,
         convencao_aplicavel_nome: s.convencao_aplicavel_nome || null,
+        situacao_convencao: s.situacao_convencao || null,
         recolhe_contribuicao: s.recolhe_contribuicao || null,
       }));
 
@@ -327,7 +352,7 @@ export function ClienteFormPage() {
           <Button
             size="small"
             startIcon={<AddIcon />}
-            onClick={() => setSindicatos([...sindicatos, { sindicato: '', convencao_id: null, convencao_aplicavel_nome: '', recolhe_contribuicao: '' }])}
+            onClick={() => setSindicatos([...sindicatos, { sindicato: '', convencao_id: null, convencao_aplicavel_nome: '', situacao_convencao: '', recolhe_contribuicao: '' }])}
           >
             Adicionar
           </Button>
@@ -362,16 +387,25 @@ export function ClienteFormPage() {
                     <TextField label="Convenção aplicável (texto livre)" value={s.convencao_aplicavel_nome ?? ''} onChange={(e) => set({ convencao_aplicavel_nome: e.target.value })} fullWidth size="small" />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField select label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao ?? ''} onChange={(e) => set({ recolhe_contribuicao: e.target.value })} fullWidth size="small">
+                    <TextField
+                      select
+                      label="Situação da convenção"
+                      value={s.situacao_convencao ?? ''}
+                      onChange={(e) => set({ situacao_convencao: e.target.value })}
+                      fullWidth
+                      size="small"
+                      helperText={cct ? `CCT vinculada: ${cct.situacao}` : undefined}
+                    >
                       <MenuItem value=""><em>Não informado</em></MenuItem>
-                      {SIM_NAO.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
+                      {SITUACAO_CONVENCAO_OPCOES.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
                     </TextField>
                   </Grid>
-                  {cct && (
-                    <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Chip size="small" variant="outlined" label={`Situação da convenção: ${cct.situacao}`} />
-                    </Grid>
-                  )}
+                  <Grid item xs={12} md={6}>
+                    <TextField select label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao ?? ''} onChange={(e) => set({ recolhe_contribuicao: e.target.value })} fullWidth size="small">
+                      <MenuItem value=""><em>Não informado</em></MenuItem>
+                      {SIM_NAO_NA.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
+                    </TextField>
+                  </Grid>
                 </Grid>
               </Box>
             );
