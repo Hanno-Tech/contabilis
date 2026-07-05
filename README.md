@@ -135,7 +135,7 @@ Login **mockado** (RF-02). Usuários definidos em `backend/src/modules/auth/user
 
 ## Tela inicial (dashboard)
 
-A rota `/` abre a **Visão geral**: KPIs da carteira, **alertas de vencimento**
+A rota `/` abre a **Dashboards**: KPIs da carteira, **alertas de vencimento**
 (procurações RFB/DET-FGTS/e-Consignado, laudos SST e convenções a expirar —
 vencidos + próximos 30/60/90 dias), **composição da carteira** (gráficos por
 responsável, regime, situação e top convenções, via Recharts) e um resumo da

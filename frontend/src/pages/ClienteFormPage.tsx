@@ -1,334 +1,440 @@
+import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
+  Divider,
   Grid,
+  IconButton,
   MenuItem,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
-import { createCliente, fetchCliente, listCct, updateCliente } from '../api/resources';
+import { fetchFicha, listCct, updateFolha } from '../api/resources';
 import { SectionCard } from '../components/ui';
+import type { ClienteSindicato } from '../types';
 
-type FieldType = 'text' | 'multiline' | 'date' | 'number';
+type FieldType = 'text' | 'multiline' | 'date' | 'number' | 'select';
 interface FieldDef {
   key: string;
   label: string;
   type?: FieldType;
   wide?: boolean;
-  required?: boolean;
+  options?: string[];
 }
 
-const SECTIONS: { title: string; fields: FieldDef[] }[] = [
+const FORMA_ENVIO_OPCOES = ['Físico', 'Gestta Messenger', 'Gestta Tarefas', 'Portal do cliente'];
+const TIPO_SEGURADO_OPCOES = ['Autônomo', 'Facultativo'];
+const SIM_NAO = ['Sim', 'Não'];
+const TIPO_LABEL: Record<string, string> = {
+  seguro_desemprego: 'Seguro Desemprego',
+  empregado_domestico: 'Empregado Doméstico',
+};
+
+// Quadros com campos escalares (os demais — sindicais, empregador doméstico, senhas — são customizados).
+const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   {
-    title: 'Informações gerais',
+    title: 'Informações tributárias',
     fields: [
-      { key: 'codigo', label: 'Código da empresa', type: 'number', required: true },
-      { key: 'nome', label: 'Nome', required: true, wide: true },
-      { key: 'cnpj', label: 'CNPJ (00.000.000/0000-00)' },
-      { key: 'tipo_cliente', label: 'Tipo de cliente' },
-      { key: 'regime_tributacao', label: 'Regime de tributação' },
-      { key: 'situacao', label: 'Situação', required: true },
-      { key: 'data_evento_situacao', label: 'Data do evento da situação', type: 'date' },
-      { key: 'responsavel', label: 'Responsável' },
-    ],
-  },
-  {
-    title: 'Folha de pagamento',
-    fields: [
-      { key: 'possui_folha', label: 'Possui folha?' },
-      { key: 'forma_pagamento_salarios', label: 'Forma de pagamento dos salários' },
-      { key: 'apura_ponto_escritorio', label: 'Apura o ponto pelo escritório?' },
-      { key: 'realiza_lancamentos', label: 'Realiza lançamentos?' },
-      { key: 'concede_plano_saude', label: 'Concede plano de saúde?' },
-      { key: 'plano_operadora', label: 'Operadora do plano' },
-      { key: 'plano_beneficiarios', label: 'Beneficiários' },
       { key: 'fator_r', label: 'Fator "R"?' },
-      { key: 'atividade_concomitante', label: 'Atividade concomitante?' },
+      { key: 'atividade_concomitante', label: 'Atividades concomitantes' },
+      { key: 'inss_retido_nf', label: 'INSS retido na NF?' },
       { key: 'construcao_civil', label: 'Construção civil?' },
       { key: 'cprb', label: 'CPRB?' },
-      { key: 'prazo_envio_folhas', label: 'Prazo para envio das folhas' },
-      { key: 'folha_rotina_automatica', label: 'Gera folha via rotina automática?' },
-      { key: 'observacoes_folha', label: 'Observações importantes sobre a folha', type: 'multiline', wide: true },
+      { key: 'encargos_recolhidos_escritorio', label: 'Encargos recolhidos pelo escritório', type: 'multiline', wide: true },
     ],
   },
   {
     title: 'Admissão',
     fields: [
+      { key: 'concede_plano_saude', label: 'Concede plano de saúde?' },
+      { key: 'plano_operadora', label: 'Operadora do plano' },
+      { key: 'plano_beneficiarios', label: 'Beneficiários do plano' },
+      { key: 'forma_pagamento_salarios', label: 'Forma de pagamento dos salários' },
       { key: 'prazo_contrato_experiencia', label: 'Prazo do contrato de experiência' },
-      { key: 'lancamentos_fixos', label: 'Lançamentos fixos', type: 'multiline', wide: true },
-      { key: 'particularidades_cliente', label: 'Particularidades do cliente', type: 'multiline', wide: true },
-      { key: 'relatorios_admissao', label: 'Relatórios gerados na admissão', type: 'multiline', wide: true },
+      { key: 'cargos_insalubres_perigosos', label: 'Possui cargos insalubres ou perigosos?' },
+      { key: 'lancamentos_fixos', label: 'Possui lançamentos fixos?', type: 'multiline', wide: true },
+      { key: 'relatorios_admissao', label: 'Relatórios admissionais', type: 'multiline', wide: true },
+      { key: 'particularidades_cliente', label: 'Especificidades do cliente', type: 'multiline', wide: true },
     ],
   },
   {
-    title: 'Envio de documentos',
+    title: 'Fechamento da folha',
     fields: [
-      { key: 'envio_meio', label: 'Meio' },
-      { key: 'envio_documento', label: 'Documento' },
-      { key: 'envio_contato', label: 'Contato', type: 'multiline', wide: true },
+      { key: 'possui_folha', label: 'Possui folha?' },
+      { key: 'responsavel_fechamento_folha', label: 'Responsável pelo fechamento da folha' },
+      { key: 'folha_rotina_automatica', label: 'Gera folha e relatórios pela rotina automática?' },
+      { key: 'codigo_rotina_automatica', label: 'Código da rotina automática' },
+      { key: 'data_meta_entrega_folha', label: 'Data meta da entrega da folha', type: 'date' },
+      { key: 'apura_ponto_escritorio', label: 'Apura o ponto pelo escritório?' },
+      { key: 'realiza_lancamentos', label: 'Realiza lançamentos?' },
+      { key: 'observacoes_folha', label: 'Informações importantes no fechamento da folha', type: 'multiline', wide: true },
     ],
   },
   {
-    title: 'Saúde e segurança do trabalho (SST)',
+    title: 'Informações sobre SST',
     fields: [
-      { key: 'possui_laudos_sst', label: 'Possui laudos de SST?' },
-      { key: 'empresa_responsavel_sst', label: 'Empresa responsável pela SST' },
+      { key: 'possui_laudos_sst', label: 'Possui laudo de SST?' },
+      { key: 'empresa_responsavel_sst', label: 'Empresa responsável' },
       { key: 'data_vencimento_laudo', label: 'Vencimento do laudo', type: 'date' },
+      { key: 'termo_ciencia_sst', label: 'Termo de ciência enviado (ausência de laudos)?' },
     ],
   },
   {
-    title: 'Procurações',
+    title: 'Forma de envio dos documentos',
     fields: [
-      { key: 'venc_procuracao_rfb', label: 'Vencimento RFB', type: 'date' },
-      { key: 'venc_procuracao_det_fgts', label: 'Vencimento DET e FGTS Digital', type: 'date' },
-      { key: 'venc_procuracao_econsignado', label: 'Vencimento e-Consignado', type: 'date' },
-      { key: 'emails_notificacao_det', label: 'E-mails que recebem o DET', wide: true },
+      { key: 'envio_meio', label: 'Forma de envio', type: 'select', options: FORMA_ENVIO_OPCOES },
+      { key: 'envio_contato', label: 'Contato', type: 'multiline', wide: true },
+      { key: 'envio_observacoes', label: 'Observações', type: 'multiline', wide: true },
     ],
   },
   {
-    title: 'Guia INSS autônomo/facultativo',
+    title: 'Dados de contribuintes individuais',
     fields: [
       { key: 'inss_nit', label: 'NIT' },
+      { key: 'inss_tipo_segurado', label: 'Tipo de segurado', type: 'select', options: TIPO_SEGURADO_OPCOES },
       { key: 'inss_codigo_recolhimento', label: 'Código de recolhimento' },
       { key: 'inss_salario_contribuicao', label: 'Salário de contribuição', type: 'number' },
       { key: 'inss_aliquota', label: 'Alíquota', type: 'number' },
     ],
   },
+  {
+    title: 'Procurações',
+    fields: [
+      { key: 'venc_procuracao_rfb', label: 'Procuração RFB', type: 'date' },
+      { key: 'venc_procuracao_det', label: 'Procuração DET', type: 'date' },
+      { key: 'venc_procuracao_fgts', label: 'Procuração FGTS Digital', type: 'date' },
+      { key: 'venc_procuracao_econsignado', label: 'Procuração e-Consignado', type: 'date' },
+      { key: 'emails_notificacao_det', label: 'E-mails que recebem o DET', wide: true },
+    ],
+  },
 ];
 
-const NUMBER_FIELDS = new Set(['codigo', 'inss_salario_contribuicao', 'inss_aliquota']);
-const ALL_KEYS = SECTIONS.flatMap((s) => s.fields.map((f) => f.key));
+const NUMBER_FIELDS = new Set(['inss_salario_contribuicao', 'inss_aliquota']);
+const SCALAR_KEYS = SCALAR_CARDS.flatMap((c) => c.fields.map((f) => f.key));
 
-type FormState = Record<string, string>;
-interface CredState {
-  sd_usuario: string;
-  sd_senha: string;
-  sd_email: string;
-  sd_email_senha: string;
-  ed_usuario: string;
-  ed_senha: string;
+interface OrgaoState {
+  id?: string;
+  tipo: string;
+  link: string;
+  usuario: string;
+  senha: string;
 }
 
-const emptyCred: CredState = {
-  sd_usuario: '',
-  sd_senha: '',
-  sd_email: '',
-  sd_email_senha: '',
-  ed_usuario: '',
-  ed_senha: '',
-};
-
-export function ClienteFormPage({ mode }: { mode: 'create' | 'edit' }) {
+export function ClienteFormPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isEdit = mode === 'edit';
 
-  const [form, setForm] = useState<FormState>(() =>
-    Object.fromEntries(ALL_KEYS.map((k) => [k, k === 'situacao' ? 'Ativa' : ''])),
+  const [form, setForm] = useState<Record<string, string>>(() =>
+    Object.fromEntries(SCALAR_KEYS.map((k) => [k, ''])),
   );
-  const [cred, setCred] = useState<CredState>(emptyCred);
-  const [convencaoId, setConvencaoId] = useState('');
+  const [regime, setRegime] = useState(''); // geral (só leitura aqui)
+  const [sindicatos, setSindicatos] = useState<ClienteSindicato[]>([]);
+  const [orgaos, setOrgaos] = useState<OrgaoState[]>([]);
+  const [edUsuario, setEdUsuario] = useState('');
+  const [edSenha, setEdSenha] = useState('');
   const [version, setVersion] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { data: cctList } = useQuery({ queryKey: ['cct'], queryFn: listCct });
-
-  const { data: cliente, isLoading } = useQuery({
-    queryKey: ['cliente', id],
-    queryFn: () => fetchCliente(id),
-    enabled: isEdit,
-  });
+  const { data: ficha, isLoading } = useQuery({ queryKey: ['ficha', id], queryFn: () => fetchFicha(id) });
 
   useEffect(() => {
-    if (!cliente) return;
-    const next: FormState = { ...form };
-    for (const key of ALL_KEYS) {
-      const v = (cliente as unknown as Record<string, unknown>)[key];
-      next[key] = v === null || v === undefined ? '' : String(v);
-    }
-    setForm(next);
-    setConvencaoId(cliente.convencao_id ?? '');
-    setVersion(cliente.version);
-    const sd = cliente.credenciais.find((c) => c.tipo === 'seguro_desemprego');
-    const ed = cliente.credenciais.find((c) => c.tipo === 'empregado_domestico');
-    setCred({
-      sd_usuario: sd?.usuario ?? '',
-      sd_senha: '',
-      sd_email: sd?.email ?? '',
-      sd_email_senha: '',
-      ed_usuario: ed?.usuario ?? '',
-      ed_senha: '',
-    });
+    if (!ficha) return;
+    const folha = (ficha.folha ?? {}) as unknown as Record<string, unknown>;
+    setForm(Object.fromEntries(SCALAR_KEYS.map((k) => {
+      const v = folha[k];
+      return [k, v === null || v === undefined ? '' : String(v)];
+    })));
+    setRegime(ficha.regime_tributacao ?? '');
+    setSindicatos(ficha.sindicatos.length ? ficha.sindicatos : []);
+    setOrgaos(
+      ficha.credenciais
+        .filter((c) => c.tipo !== 'empregado_domestico')
+        .map((c) => ({ id: c.id, tipo: TIPO_LABEL[c.tipo] ?? c.tipo, link: c.link ?? '', usuario: c.usuario ?? '', senha: '' })),
+    );
+    const ed = ficha.credenciais.find((c) => c.tipo === 'empregado_domestico');
+    setEdUsuario(ed?.usuario ?? '');
+    setEdSenha('');
+    setVersion(ficha.folha?.version ?? 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cliente]);
+  }, [ficha]);
 
   const setField = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
-
-  const payload = useMemo(() => {
-    const out: Record<string, unknown> = {};
-    for (const key of ALL_KEYS) {
-      const raw = form[key]?.trim() ?? '';
-      if (NUMBER_FIELDS.has(key)) {
-        out[key] = raw === '' ? (key === 'codigo' ? undefined : null) : Number(raw);
-      } else {
-        out[key] = raw === '' ? null : raw;
-      }
-    }
-    out.convencao_id = convencaoId || null;
-
-    const credenciais: Record<string, unknown> = {};
-    if (cred.sd_usuario || cred.sd_senha || cred.sd_email || cred.sd_email_senha) {
-      credenciais.seguro_desemprego = {
-        usuario: cred.sd_usuario || null,
-        email: cred.sd_email || null,
-        ...(cred.sd_senha ? { senha: cred.sd_senha } : {}),
-        ...(cred.sd_email_senha ? { email_senha: cred.sd_email_senha } : {}),
-      };
-    }
-    if (cred.ed_usuario || cred.ed_senha) {
-      credenciais.empregado_domestico = {
-        usuario: cred.ed_usuario || null,
-        ...(cred.ed_senha ? { senha: cred.ed_senha } : {}),
-      };
-    }
-    if (Object.keys(credenciais).length) out.credenciais = credenciais;
-    return out;
-  }, [form, cred, convencaoId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setConflict(false);
-    if (!form.nome.trim() || !form.codigo.trim()) {
-      setError('Código e nome são obrigatórios.');
-      return;
+
+    const payload: Record<string, unknown> = {};
+    for (const key of SCALAR_KEYS) {
+      const raw = form[key]?.trim() ?? '';
+      payload[key] = raw === '' ? null : NUMBER_FIELDS.has(key) ? Number(raw) : raw;
     }
+
+    payload.sindicatos = sindicatos
+      .filter((s) => s.sindicato || s.convencao_id || s.convencao_aplicavel_nome || s.recolhe_contribuicao)
+      .map((s) => ({
+        sindicato: s.sindicato || null,
+        convencao_id: s.convencao_id || null,
+        convencao_aplicavel_nome: s.convencao_aplicavel_nome || null,
+        recolhe_contribuicao: s.recolhe_contribuicao || null,
+      }));
+
+    const orgaosPayload = orgaos
+      .filter((o) => o.tipo.trim())
+      .map((o) => ({
+        ...(o.id ? { id: o.id } : {}),
+        tipo: o.tipo.trim(),
+        link: o.link || null,
+        usuario: o.usuario || null,
+        ...(o.senha ? { senha: o.senha } : {}),
+      }));
+    payload.credenciais = {
+      orgaos: orgaosPayload,
+      empregado_domestico: {
+        usuario: edUsuario || null,
+        ...(edSenha ? { senha: edSenha } : {}),
+      },
+    };
+
     setSaving(true);
     try {
-      if (isEdit) {
-        const saved = await updateCliente(id, { ...payload, version });
-        queryClient.invalidateQueries({ queryKey: ['cliente', id] });
-        queryClient.invalidateQueries({ queryKey: ['clientes'] });
-        navigate(`/clientes/${saved.id}`);
-      } else {
-        const saved = await createCliente(payload);
-        queryClient.invalidateQueries({ queryKey: ['clientes'] });
-        navigate(`/clientes/${saved.id}`);
-      }
+      await updateFolha(id, { ...payload, version });
+      queryClient.invalidateQueries({ queryKey: ['ficha', id] });
+      queryClient.invalidateQueries({ queryKey: ['clientes'] });
+      navigate(`/clientes/${id}`);
     } catch (err) {
-      if (isConflict(err)) {
-        setConflict(true);
-      } else {
-        setError(apiErrorMessage(err, 'Não foi possível salvar o cliente.'));
-      }
+      if (isConflict(err)) setConflict(true);
+      else setError(apiErrorMessage(err, 'Não foi possível salvar os dados.'));
     } finally {
       setSaving(false);
     }
   }
 
-  if (isEdit && isLoading) {
+  if (isLoading) {
     return (
       <Box sx={{ p: 6, textAlign: 'center' }}>
         <CircularProgress />
       </Box>
     );
   }
+  if (!ficha) return <Alert severity="error">Não foi possível carregar o cliente.</Alert>;
+
+  const renderField = (f: FieldDef) => {
+    const value = form[f.key] ?? '';
+    if (f.type === 'select') {
+      const opts = f.options ?? [];
+      const options = value && !opts.includes(value) ? [...opts, value] : opts;
+      return (
+        <Grid key={f.key} item xs={12} sm={f.wide ? 12 : 6} md={f.wide ? 12 : 4}>
+          <TextField select label={f.label} value={value} onChange={(e) => setField(f.key, e.target.value)} fullWidth size="small">
+            <MenuItem value=""><em>Não informado</em></MenuItem>
+            {options.map((o) => (
+              <MenuItem key={o} value={o}>{o}</MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+      );
+    }
+    return (
+      <Grid key={f.key} item xs={12} sm={f.wide ? 12 : 6} md={f.wide ? 12 : 4}>
+        <TextField
+          label={f.label}
+          value={value}
+          onChange={(e) => setField(f.key, e.target.value)}
+          fullWidth
+          size="small"
+          type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+          multiline={f.type === 'multiline'}
+          minRows={f.type === 'multiline' ? 3 : undefined}
+          InputLabelProps={f.type === 'date' ? { shrink: true } : undefined}
+        />
+      </Grid>
+    );
+  };
+
+  const cardByTitle = (title: string) => SCALAR_CARDS.find((c) => c.title === title)!;
+  const ScalarCard = ({ title }: { title: string }) => {
+    const card = cardByTitle(title);
+    return (
+      <SectionCard title={card.title}>
+        <Grid container spacing={2}>{card.fields.map(renderField)}</Grid>
+      </SectionCard>
+    );
+  };
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to={isEdit ? `/clientes/${id}` : '/clientes'} sx={{ mb: 2 }}>
+      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to={`/clientes/${id}`} sx={{ mb: 2 }}>
         Cancelar
       </Button>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        {isEdit ? 'Editar cliente' : 'Novo cliente'}
+      <Typography variant="h5">Editar dados da empresa</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        {ficha.nome} · Código {ficha.codigo} — os dados gerais (razão social, CNPJ, tipo, situação) são editados no menu “Informações gerais”.
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {conflict && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Este cliente foi alterado por outro usuário enquanto você editava. Recarregue a ficha para
-          ver a versão atual antes de salvar novamente.
+          Estes dados foram alterados por outro usuário enquanto você editava. Recarregue antes de salvar novamente.
         </Alert>
       )}
 
-      {SECTIONS.map((section) => (
-        <SectionCard key={section.title} title={section.title}>
-          <Grid container spacing={2}>
-            {section.fields.map((f) => (
-              <Grid key={f.key} item xs={12} sm={f.wide ? 12 : 6} md={f.wide ? 12 : 4}>
-                <TextField
-                  label={f.label}
-                  value={form[f.key] ?? ''}
-                  onChange={(e) => setField(f.key, e.target.value)}
-                  required={f.required}
-                  fullWidth
-                  size="small"
-                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
-                  multiline={f.type === 'multiline'}
-                  minRows={f.type === 'multiline' ? 3 : undefined}
-                  InputLabelProps={f.type === 'date' ? { shrink: true } : undefined}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </SectionCard>
-      ))}
-
-      <SectionCard title="Sindicato e convenção">
+      {/* Informações tributárias (com Regime só leitura) */}
+      <SectionCard title="Informações tributárias">
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <TextField label="Sindicato ao qual está sujeito" value={form.sindicato ?? ''} onChange={(e) => setField('sindicato', e.target.value)} fullWidth size="small" />
+          <Grid item xs={12} sm={6} md={4}>
+            <TextField
+              label="Regime de tributação"
+              value={regime}
+              fullWidth
+              size="small"
+              disabled
+              helperText="Editado em Informações gerais"
+            />
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField label="Convenção aplicável (texto livre)" value={form.convencao_aplicavel_nome ?? ''} onChange={(e) => setField('convencao_aplicavel_nome', e.target.value)} fullWidth size="small" />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField select label="Convenção vinculada (CCT)" value={convencaoId} onChange={(e) => setConvencaoId(e.target.value)} fullWidth size="small" helperText="Vincula o cliente a uma convenção cadastrada (RF-17)">
-              <MenuItem value="">Nenhuma</MenuItem>
-              {cctList?.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.apelido}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
+          {cardByTitle('Informações tributárias').fields.map(renderField)}
         </Grid>
       </SectionCard>
 
-      <SectionCard title="Credenciais de portais (dados sensíveis)">
+      <ScalarCard title="Admissão" />
+
+      <SectionCard title="Rescisão">
+        <Typography variant="body2" color="text.disabled">Campos a definir.</Typography>
+      </SectionCard>
+
+      <ScalarCard title="Fechamento da folha" />
+
+      {/* Informações sindicais (vários) */}
+      <SectionCard
+        title="Informações sindicais"
+        action={
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => setSindicatos([...sindicatos, { sindicato: '', convencao_id: null, convencao_aplicavel_nome: '', recolhe_contribuicao: '' }])}
+          >
+            Adicionar
+          </Button>
+        }
+      >
+        <Stack spacing={2}>
+          {sindicatos.map((s, i) => {
+            const cct = cctList?.find((c) => c.id === s.convencao_id);
+            const set = (patch: Partial<ClienteSindicato>) =>
+              setSindicatos(sindicatos.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+            return (
+              <Box key={s.id ?? i} sx={{ p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Sindicato {i + 1}</Typography>
+                  <IconButton size="small" color="error" onClick={() => setSindicatos(sindicatos.filter((_, j) => j !== i))}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField label="Sindicato ao qual está sujeito" value={s.sindicato ?? ''} onChange={(e) => set({ sindicato: e.target.value })} fullWidth size="small" />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField select label="Convenção vinculada (CCT)" value={s.convencao_id ?? ''} onChange={(e) => set({ convencao_id: e.target.value || null })} fullWidth size="small">
+                      <MenuItem value="">Nenhuma</MenuItem>
+                      {cctList?.map((c) => (
+                        <MenuItem key={c.id} value={c.id}>{c.apelido}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField label="Convenção aplicável (texto livre)" value={s.convencao_aplicavel_nome ?? ''} onChange={(e) => set({ convencao_aplicavel_nome: e.target.value })} fullWidth size="small" />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField select label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao ?? ''} onChange={(e) => set({ recolhe_contribuicao: e.target.value })} fullWidth size="small">
+                      <MenuItem value=""><em>Não informado</em></MenuItem>
+                      {SIM_NAO.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
+                    </TextField>
+                  </Grid>
+                  {cct && (
+                    <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Chip size="small" variant="outlined" label={`Situação da convenção: ${cct.situacao}`} />
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            );
+          })}
+          {sindicatos.length === 0 && <Typography variant="body2" color="text.disabled">Nenhum sindicato adicionado.</Typography>}
+        </Stack>
+      </SectionCard>
+
+      <ScalarCard title="Informações sobre SST" />
+      <ScalarCard title="Forma de envio dos documentos" />
+      <ScalarCard title="Dados de contribuintes individuais" />
+
+      {/* Empregador doméstico */}
+      <SectionCard title="Dados do empregador doméstico">
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          As senhas são armazenadas cifradas. {isEdit && 'Deixe o campo de senha em branco para manter a senha atual.'}
+          A senha é armazenada cifrada. Deixe em branco para manter a atual.
         </Typography>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>Seguro Desemprego</Typography>
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={6} md={3}><TextField label="Usuário" value={cred.sd_usuario} onChange={(e) => setCred({ ...cred, sd_usuario: e.target.value })} fullWidth size="small" /></Grid>
-          <Grid item xs={12} sm={6} md={3}><TextField label="Senha" type="password" value={cred.sd_senha} onChange={(e) => setCred({ ...cred, sd_senha: e.target.value })} fullWidth size="small" placeholder={isEdit ? '••••••' : ''} /></Grid>
-          <Grid item xs={12} sm={6} md={3}><TextField label="E-mail do cliente" value={cred.sd_email} onChange={(e) => setCred({ ...cred, sd_email: e.target.value })} fullWidth size="small" /></Grid>
-          <Grid item xs={12} sm={6} md={3}><TextField label="Senha do e-mail" type="password" value={cred.sd_email_senha} onChange={(e) => setCred({ ...cred, sd_email_senha: e.target.value })} fullWidth size="small" /></Grid>
-        </Grid>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>Empregado Doméstico</Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}><TextField label="Usuário" value={cred.ed_usuario} onChange={(e) => setCred({ ...cred, ed_usuario: e.target.value })} fullWidth size="small" /></Grid>
-          <Grid item xs={12} sm={6} md={3}><TextField label="Senha" type="password" value={cred.ed_senha} onChange={(e) => setCred({ ...cred, ed_senha: e.target.value })} fullWidth size="small" /></Grid>
+          <Grid item xs={12} sm={6}><TextField label="Usuário e-social" value={edUsuario} onChange={(e) => setEdUsuario(e.target.value)} fullWidth size="small" /></Grid>
+          <Grid item xs={12} sm={6}><TextField label="Senha" type="password" value={edSenha} onChange={(e) => setEdSenha(e.target.value)} fullWidth size="small" placeholder="••••••" /></Grid>
         </Grid>
+      </SectionCard>
+
+      <ScalarCard title="Procurações" />
+
+      {/* Senhas (por órgão) */}
+      <SectionCard
+        title="Senhas"
+        action={
+          <Button size="small" startIcon={<AddIcon />} onClick={() => setOrgaos([...orgaos, { tipo: '', link: '', usuario: '', senha: '' }])}>
+            Adicionar órgão
+          </Button>
+        }
+      >
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+          As senhas são armazenadas cifradas. Deixe a senha em branco para manter a atual.
+        </Typography>
+        <Stack spacing={2}>
+          {orgaos.map((o, i) => {
+            const set = (patch: Partial<OrgaoState>) => setOrgaos(orgaos.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+            return (
+              <Box key={o.id ?? i}>
+                {i > 0 && <Divider sx={{ mb: 2 }} />}
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={3}><TextField label="Órgão" value={o.tipo} onChange={(e) => set({ tipo: e.target.value })} fullWidth size="small" /></Grid>
+                  <Grid item xs={12} md={3}><TextField label="Link de acesso" value={o.link} onChange={(e) => set({ link: e.target.value })} fullWidth size="small" /></Grid>
+                  <Grid item xs={12} md={3}><TextField label="Usuário" value={o.usuario} onChange={(e) => set({ usuario: e.target.value })} fullWidth size="small" /></Grid>
+                  <Grid item xs={11} md={2}><TextField label="Senha" type="password" value={o.senha} onChange={(e) => set({ senha: e.target.value })} fullWidth size="small" placeholder="••••••" /></Grid>
+                  <Grid item xs={1}>
+                    <IconButton size="small" color="error" onClick={() => setOrgaos(orgaos.filter((_, j) => j !== i))}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              </Box>
+            );
+          })}
+          {orgaos.length === 0 && <Typography variant="body2" color="text.disabled">Nenhum órgão adicionado.</Typography>}
+        </Stack>
       </SectionCard>
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
-        <Button component={RouterLink} to={isEdit ? `/clientes/${id}` : '/clientes'}>
-          Cancelar
-        </Button>
+        <Button component={RouterLink} to={`/clientes/${id}`}>Cancelar</Button>
         <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
           {saving ? 'Salvando...' : 'Salvar'}
         </Button>

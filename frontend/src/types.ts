@@ -49,10 +49,10 @@ export interface Dashboard {
 
 export interface Alteracao {
   id: string;
-  entidade: 'cliente' | 'convencao';
+  entidade: 'cliente' | 'convencao' | 'ocorrencia';
   entidade_id: string;
   entidade_label: string | null;
-  acao: 'criou' | 'editou';
+  acao: 'criou' | 'editou' | 'excluiu';
   usuario_id: string | null;
   usuario_nome: string | null;
   alteracoes: FieldChange[];
@@ -64,14 +64,18 @@ export interface ClienteListItem {
   codigo: number;
   nome: string;
   cnpj: string | null;
+  tipo_cliente: string | null;
   situacao: string;
+  data_evento_situacao: string | null;
   responsavel: string | null;
   regime_tributacao: string | null;
   convencao_apelido: string | null;
 }
 
 export interface CredencialMascarada {
+  id: string;
   tipo: string;
+  link: string | null;
   usuario: string | null;
   email: string | null;
   tem_senha: boolean;
@@ -79,13 +83,27 @@ export interface CredencialMascarada {
 }
 
 export interface CredencialRevelada {
+  id: string;
   tipo: string;
+  link: string | null;
   usuario: string | null;
   email: string | null;
   senha: string | null;
   email_senha: string | null;
 }
 
+export interface ClienteSindicato {
+  id?: string;
+  sindicato: string | null;
+  convencao_id: string | null;
+  convencao_aplicavel_nome: string | null;
+  recolhe_contribuicao: string | null;
+  ordem?: number;
+  convencao_apelido?: string | null;
+  convencao_situacao?: string | null;
+}
+
+/** Clientes do cliente (tabela `clientes`). */
 export interface Cliente {
   id: string;
   codigo: number;
@@ -96,6 +114,13 @@ export interface Cliente {
   situacao: string;
   data_evento_situacao: string | null;
   responsavel: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Dados de folha em diante (tabela `cliente_folha`). */
+export interface ClienteFolha {
   possui_folha: string | null;
   forma_pagamento_salarios: string | null;
   apura_ponto_escritorio: string | null;
@@ -107,16 +132,23 @@ export interface Cliente {
   atividade_concomitante: string | null;
   construcao_civil: string | null;
   cprb: string | null;
+  encargos_recolhidos_escritorio: string | null;
   observacoes_folha: string | null;
   prazo_envio_folhas: string | null;
+  inss_retido_nf: string | null;
   folha_rotina_automatica: string | null;
+  responsavel_fechamento_folha: string | null;
+  codigo_rotina_automatica: string | null;
+  data_meta_entrega_folha: string | null;
   prazo_contrato_experiencia: string | null;
   lancamentos_fixos: string | null;
   particularidades_cliente: string | null;
   relatorios_admissao: string | null;
+  cargos_insalubres_perigosos: string | null;
   envio_meio: string | null;
   envio_documento: string | null;
   envio_contato: string | null;
+  envio_observacoes: string | null;
   sindicato: string | null;
   convencao_aplicavel_nome: string | null;
   convencao_id: string | null;
@@ -124,17 +156,25 @@ export interface Cliente {
   possui_laudos_sst: string | null;
   empresa_responsavel_sst: string | null;
   data_vencimento_laudo: string | null;
+  termo_ciencia_sst: string | null;
   venc_procuracao_rfb: string | null;
   venc_procuracao_det_fgts: string | null;
+  venc_procuracao_det: string | null;
+  venc_procuracao_fgts: string | null;
   venc_procuracao_econsignado: string | null;
   emails_notificacao_det: string | null;
+  inss_tipo_segurado: string | null;
   inss_nit: string | null;
   inss_codigo_recolhimento: string | null;
   inss_salario_contribuicao: string | null;
   inss_aliquota: string | null;
   version: number;
-  created_at: string;
-  updated_at: string;
+}
+
+/** Ficha completa (geral + folha + sindicatos + credenciais) — tela "Visão geral". */
+export interface ClienteFicha extends Cliente {
+  folha: ClienteFolha | null;
+  sindicatos: ClienteSindicato[];
   credenciais: CredencialMascarada[];
 }
 
@@ -142,6 +182,32 @@ export interface Filtros {
   situacoes: string[];
   responsaveis: string[];
   regimes: string[];
+}
+
+export interface Usuario {
+  id: string;
+  nome: string;
+}
+
+export interface OcorrenciaOpcoes {
+  usuarios: Usuario[];
+  situacoes: string[];
+}
+
+export interface Ocorrencia {
+  id: string;
+  cliente_id: string;
+  data: string;
+  ocorrencia: string;
+  resolucao: string | null;
+  situacao: string;
+  responsavel_id: string | null;
+  responsavel_nome: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  cliente_codigo: number;
+  cliente_nome: string;
 }
 
 export interface CctListItem {

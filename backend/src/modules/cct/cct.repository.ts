@@ -163,8 +163,16 @@ export async function convencaoExists(id: string): Promise<boolean> {
 export async function listClientesDaConvencao(convencaoId: string) {
   return db
     .selectFrom('clientes')
-    .select(['id', 'codigo', 'nome', 'cnpj', 'situacao', 'responsavel'])
-    .where('convencao_id', '=', convencaoId)
-    .orderBy('nome')
+    .innerJoin('cliente_folha', 'cliente_folha.cliente_id', 'clientes.id')
+    .select([
+      'clientes.id',
+      'clientes.codigo',
+      'clientes.nome',
+      'clientes.cnpj',
+      'clientes.situacao',
+      'clientes.responsavel',
+    ])
+    .where('cliente_folha.convencao_id', '=', convencaoId)
+    .orderBy('clientes.nome')
     .execute();
 }

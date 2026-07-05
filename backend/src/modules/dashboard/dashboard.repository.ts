@@ -34,24 +34,25 @@ const dentroDaJanela = (dias: number) => dias <= 90;
 async function getVencimentos(): Promise<Vencimento[]> {
   const itens: Vencimento[] = [];
 
-  // ----- Procurações + laudo SST (por cliente) -----
+  // ----- Procurações + laudo SST (por cliente; dados em cliente_folha) -----
   const clientes = await db
     .selectFrom('clientes')
+    .innerJoin('cliente_folha', 'cliente_folha.cliente_id', 'clientes.id')
     .select([
-      'id',
-      'codigo',
-      'nome',
-      'venc_procuracao_rfb',
-      'venc_procuracao_det_fgts',
-      'venc_procuracao_econsignado',
-      'data_vencimento_laudo',
+      'clientes.id',
+      'clientes.codigo',
+      'clientes.nome',
+      'cliente_folha.venc_procuracao_rfb',
+      'cliente_folha.venc_procuracao_det_fgts',
+      'cliente_folha.venc_procuracao_econsignado',
+      'cliente_folha.data_vencimento_laudo',
     ])
     .where((eb) =>
       eb.or([
-        eb('venc_procuracao_rfb', 'is not', null),
-        eb('venc_procuracao_det_fgts', 'is not', null),
-        eb('venc_procuracao_econsignado', 'is not', null),
-        eb('data_vencimento_laudo', 'is not', null),
+        eb('cliente_folha.venc_procuracao_rfb', 'is not', null),
+        eb('cliente_folha.venc_procuracao_det_fgts', 'is not', null),
+        eb('cliente_folha.venc_procuracao_econsignado', 'is not', null),
+        eb('cliente_folha.data_vencimento_laudo', 'is not', null),
       ]),
     )
     .execute();
@@ -125,13 +126,14 @@ async function getVencimentos(): Promise<Vencimento[]> {
 async function getKpis(vencimentos: Vencimento[]) {
   const clientes = await db
     .selectFrom('clientes')
+    .leftJoin('cliente_folha', 'cliente_folha.cliente_id', 'clientes.id')
     .select((eb) => [
       eb.fn.countAll().as('total'),
       eb.fn
-        .sum(sql<number>`case when situacao ilike 'ativ%' then 1 else 0 end`)
+        .sum(sql<number>`case when clientes.situacao ilike 'ativ%' then 1 else 0 end`)
         .as('ativos'),
       eb.fn
-        .sum(sql<number>`case when convencao_id is null then 1 else 0 end`)
+        .sum(sql<number>`case when cliente_folha.convencao_id is null then 1 else 0 end`)
         .as('sem_convencao'),
     ])
     .executeTakeFirst();
@@ -176,8 +178,8 @@ async function getComposicao() {
   };
 
   const topConvencoes = await db
-    .selectFrom('clientes')
-    .innerJoin('convencoes', 'convencoes.id', 'clientes.convencao_id')
+    .selectFrom('cliente_folha')
+    .innerJoin('convencoes', 'convencoes.id', 'cliente_folha.convencao_id')
     .select((eb) => ['convencoes.apelido as label', eb.fn.countAll().as('total')])
     .groupBy('convencoes.apelido')
     .orderBy('total', 'desc')

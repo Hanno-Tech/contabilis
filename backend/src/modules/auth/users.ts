@@ -25,6 +25,19 @@ export function findUser(username: string): MockUser | undefined {
   return MOCK_USERS.find((u) => u.username.toLowerCase() === username.toLowerCase().trim());
 }
 
+/** Usuários disponíveis para seleção (ex.: responsável por uma ocorrência), sem duplicatas. */
+export function listSelectableUsers(): Array<{ id: string; nome: string }> {
+  const seen = new Set<string>();
+  const users: Array<{ id: string; nome: string }> = [];
+  for (const u of MOCK_USERS) {
+    const key = u.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    users.push({ id: u.id, nome: u.name });
+  }
+  return users;
+}
+
 export function checkPassword(user: MockUser, password: string): boolean {
   return bcrypt.compareSync(password, user.passwordHash);
 }

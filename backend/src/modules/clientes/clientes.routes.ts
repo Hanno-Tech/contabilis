@@ -5,7 +5,9 @@ import { validateBody } from '../../middleware/validate.js';
 import {
   clienteInputSchema,
   clienteUpdateSchema,
+  folhaUpdateSchema,
   type ClienteUpdate,
+  type FolhaUpdate,
 } from './clientes.schema.js';
 import * as repo from './clientes.repository.js';
 import * as audit from '../audit/audit.repository.js';
@@ -21,7 +23,7 @@ clientesRouter.get(
   }),
 );
 
-// RF-10/11/12 — listar com busca e filtros
+// Listar com busca e filtros
 clientesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -37,7 +39,26 @@ clientesRouter.get(
   }),
 );
 
-// RF-13 — ficha completa
+// Ficha completa (informações gerais + folha + credenciais) — tela "Informações Gerais"
+clientesRouter.get(
+  '/:id/ficha',
+  asyncHandler(async (req, res) => {
+    const ficha = await repo.getFicha(req.params.id);
+    if (!ficha) throw NotFound('Cliente não encontrado');
+    res.json(ficha);
+  }),
+);
+
+// Revelar credenciais descriptografadas (RNF-02)
+clientesRouter.get(
+  '/:id/credenciais',
+  asyncHandler(async (req, res) => {
+    if (!(await repo.clienteExists(req.params.id))) throw NotFound('Cliente não encontrado');
+    res.json(await repo.revelarCredenciais(req.params.id));
+  }),
+);
+
+// Clientes do cliente — tela "Clientes"
 clientesRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
@@ -47,16 +68,7 @@ clientesRouter.get(
   }),
 );
 
-// RNF-02 — revelar credenciais descriptografadas
-clientesRouter.get(
-  '/:id/credenciais',
-  asyncHandler(async (req, res) => {
-    if (!(await repo.clienteExists(req.params.id))) throw NotFound('Cliente não encontrado');
-    res.json(await repo.revelarCredenciais(req.params.id));
-  }),
-);
-
-// RF-14 — cadastrar
+// Cadastrar (informações gerais)
 clientesRouter.post(
   '/',
   validateBody(clienteInputSchema),
@@ -68,7 +80,7 @@ clientesRouter.post(
   }),
 );
 
-// RF-15 — editar (com locking otimista — RNF-01)
+// Editar informações gerais (locking otimista — RNF-01)
 clientesRouter.put(
   '/:id',
   validateBody(clienteUpdateSchema),
@@ -82,6 +94,24 @@ clientesRouter.put(
     }
     const after = await repo.getCliente(req.params.id);
     if (after) await audit.registrarCliente(req.user!, 'editou', before, after);
+    res.json(after);
+  }),
+);
+
+// Editar dados de folha em diante (locking otimista)
+clientesRouter.put(
+  '/:id/folha',
+  validateBody(folhaUpdateSchema),
+  asyncHandler(async (req, res) => {
+    const { version, ...input } = req.body as FolhaUpdate;
+    const before = await repo.getFicha(req.params.id);
+    if (!before) throw NotFound('Cliente não encontrado');
+    const newVersion = await repo.updateFolha(req.params.id, version, input);
+    if (newVersion === null) {
+      throw Conflict('Estes dados foram alterados por outro usuário. Recarregue e tente novamente.');
+    }
+    const after = await repo.getFicha(req.params.id);
+    if (after) await audit.registrarClienteFolha(req.user!, before, after);
     res.json(after);
   }),
 );

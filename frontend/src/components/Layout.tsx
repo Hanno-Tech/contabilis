@@ -1,13 +1,19 @@
 import DashboardIcon from '@mui/icons-material/SpaceDashboard';
 import DescriptionIcon from '@mui/icons-material/Description';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GroupsIcon from '@mui/icons-material/Groups';
 import HistoryIcon from '@mui/icons-material/History';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import BadgeIcon from '@mui/icons-material/Badge';
+import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
   Avatar,
   Box,
+  Collapse,
   Drawer,
   IconButton,
   ListItemIcon,
@@ -25,11 +31,30 @@ import { brandGradient } from '../theme';
 
 const SIDEBAR_WIDTH = 256;
 
-const navItems = [
-  { to: '/', label: 'Visão geral', icon: <DashboardIcon fontSize="small" /> },
-  { to: '/clientes', label: 'Clientes', icon: <GroupsIcon fontSize="small" /> },
-  { to: '/cct', label: 'Convenções (CCT)', icon: <DescriptionIcon fontSize="small" /> },
-  { to: '/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
+type NavItem = { to: string; label: string; icon: ReactNode };
+type NavGroup = { label: string; icon: ReactNode; children: NavItem[] };
+type NavEntry = ({ kind: 'item' } & NavItem) | ({ kind: 'group' } & NavGroup);
+
+const navEntries: NavEntry[] = [
+  // Menu de topo, no mesmo nível de "Setor pessoal".
+  {
+    kind: 'item',
+    to: '/informacoes-gerais',
+    label: 'Clientes',
+    icon: <BadgeIcon fontSize="small" />,
+  },
+  {
+    kind: 'group',
+    label: 'Setor pessoal',
+    icon: <WorkOutlineIcon fontSize="small" />,
+    children: [
+      { to: '/', label: 'Dashboards', icon: <DashboardIcon fontSize="small" /> },
+      { to: '/clientes', label: 'Informações Gerais', icon: <GroupsIcon fontSize="small" /> },
+      { to: '/ocorrencias', label: 'Ocorrências', icon: <ReportProblemOutlinedIcon fontSize="small" /> },
+      { to: '/cct', label: 'Convenções (CCT)', icon: <DescriptionIcon fontSize="small" /> },
+      { to: '/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
+    ],
+  },
 ];
 
 /** Marca em gradiente — assinatura da identidade. */
@@ -67,14 +92,19 @@ function Brand() {
   );
 }
 
-function NavLink({ to, label, icon, onNavigate }: {
+function isItemActive(pathname: string, to: string) {
+  return to === '/' ? pathname === '/' : pathname.startsWith(to);
+}
+
+function NavLink({ to, label, icon, onNavigate, nested }: {
   to: string;
   label: string;
   icon: ReactNode;
   onNavigate?: () => void;
+  nested?: boolean;
 }) {
   const location = useLocation();
-  const active = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+  const active = isItemActive(location.pathname, to);
   return (
     <Box
       component={RouterLink}
@@ -86,7 +116,8 @@ function NavLink({ to, label, icon, onNavigate }: {
         gap: 1.5,
         mx: 1.5,
         my: 0.25,
-        px: 1.75,
+        pl: nested ? 3.5 : 1.75,
+        pr: 1.75,
         py: 1.1,
         borderRadius: 2,
         textDecoration: 'none',
@@ -118,6 +149,52 @@ function NavLink({ to, label, icon, onNavigate }: {
   );
 }
 
+function NavGroupItem({ group, onNavigate }: { group: NavGroup; onNavigate?: () => void }) {
+  const location = useLocation();
+  const hasActiveChild = group.children.some((c) => isItemActive(location.pathname, c.to));
+  const [open, setOpen] = useState(hasActiveChild);
+
+  return (
+    <>
+      <Box
+        component="button"
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          width: 'calc(100% - 24px)',
+          mx: 1.5,
+          my: 0.25,
+          px: 1.75,
+          py: 1.1,
+          border: 0,
+          borderRadius: 2,
+          cursor: 'pointer',
+          textAlign: 'left',
+          bgcolor: 'transparent',
+          color: hasActiveChild ? 'text.primary' : 'text.secondary',
+          fontWeight: 700,
+          transition: 'background-color 120ms ease, color 120ms ease',
+          '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.06) },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>{group.icon}</ListItemIcon>
+        <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 'inherit' }}>
+          {group.label}
+        </ListItemText>
+        {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+      </Box>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        {group.children.map((item) => (
+          <NavLink key={item.to} {...item} onNavigate={onNavigate} nested />
+        ))}
+      </Collapse>
+    </>
+  );
+}
+
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   return (
@@ -131,9 +208,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         Navegação
       </Typography>
       <Box sx={{ flexGrow: 1 }}>
-        {navItems.map((item) => (
-          <NavLink key={item.to} {...item} onNavigate={onNavigate} />
-        ))}
+        {navEntries.map((entry) =>
+          entry.kind === 'group' ? (
+            <NavGroupItem key={entry.label} group={entry} onNavigate={onNavigate} />
+          ) : (
+            <NavLink
+              key={entry.to}
+              to={entry.to}
+              label={entry.label}
+              icon={entry.icon}
+              onNavigate={onNavigate}
+            />
+          ),
+        )}
       </Box>
       <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
         <Stack direction="row" spacing={1.5} alignItems="center">

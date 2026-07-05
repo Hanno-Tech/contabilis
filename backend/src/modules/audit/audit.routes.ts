@@ -14,7 +14,9 @@ auditRouter.get(
     res.json(
       await listAlteracoes({
         entidade:
-          entidade === 'cliente' || entidade === 'convencao' ? (entidade as Entidade) : undefined,
+          entidade === 'cliente' || entidade === 'convencao' || entidade === 'ocorrencia'
+            ? (entidade as Entidade)
+            : undefined,
         entidade_id: typeof entidade_id === 'string' ? entidade_id : undefined,
         q: typeof q === 'string' ? q : undefined,
         limit: typeof limit === 'string' ? Number(limit) || undefined : undefined,

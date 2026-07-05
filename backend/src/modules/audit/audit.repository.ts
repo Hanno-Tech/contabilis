@@ -1,10 +1,15 @@
 import { db } from '../../db/index.js';
 import type { FieldChange } from '../../db/types.js';
 import type { SessionUser } from '../../lib/jwt.js';
-import { CLIENTE_LABELS, CONVENCAO_LABELS } from './audit.labels.js';
+import {
+  CLIENTE_FOLHA_LABELS,
+  CLIENTE_GERAL_LABELS,
+  CONVENCAO_LABELS,
+  OCORRENCIA_LABELS,
+} from './audit.labels.js';
 
-export type Entidade = 'cliente' | 'convencao';
-export type Acao = 'criou' | 'editou';
+export type Entidade = 'cliente' | 'convencao' | 'ocorrencia';
+export type Acao = 'criou' | 'editou' | 'excluiu';
 
 /** Normaliza um valor de campo para string comparável (vazio → null). */
 function normalize(value: unknown): string | null {
@@ -59,23 +64,40 @@ export async function writeAudit(args: WriteArgs): Promise<void> {
 
 // --------------------------------------------------------------------- Cliente
 
+type CredResumo = Array<{ tipo: string; link?: string | null; usuario: string | null; email: string | null; tem_senha: boolean; tem_email_senha: boolean }>;
+type SindicatoResumo = Array<{ sindicato?: string | null; convencao_id?: string | null; convencao_aplicavel_nome?: string | null; recolhe_contribuicao?: string | null }>;
+
 interface ClienteSnapshot {
   id: string;
   codigo: number;
   nome: string;
-  credenciais?: Array<{ tipo: string; usuario: string | null; email: string | null; tem_senha: boolean; tem_email_senha: boolean }>;
   [key: string]: unknown;
 }
 
+interface FichaSnapshot extends ClienteSnapshot {
+  folha: Record<string, unknown> | null;
+  credenciais?: CredResumo;
+  sindicatos?: SindicatoResumo;
+}
+
 /** Resumo comparável das credenciais mascaradas (sem expor segredos). */
-function credResumo(snap: ClienteSnapshot | null): string {
+function credResumo(snap: { credenciais?: CredResumo } | null): string {
   if (!snap?.credenciais) return '';
   return [...snap.credenciais]
     .sort((a, b) => a.tipo.localeCompare(b.tipo))
-    .map((c) => `${c.tipo}:${c.usuario ?? ''}:${c.email ?? ''}:${c.tem_senha}:${c.tem_email_senha}`)
+    .map((c) => `${c.tipo}:${c.link ?? ''}:${c.usuario ?? ''}:${c.email ?? ''}:${c.tem_senha}:${c.tem_email_senha}`)
     .join('|');
 }
 
+/** Resumo comparável da lista de sindicatos/convenções. */
+function sindicatosResumo(snap: { sindicatos?: SindicatoResumo } | null): string {
+  if (!snap?.sindicatos) return '';
+  return snap.sindicatos
+    .map((s) => `${s.sindicato ?? ''}:${s.convencao_id ?? ''}:${s.convencao_aplicavel_nome ?? ''}:${s.recolhe_contribuicao ?? ''}`)
+    .join('|');
+}
+
+/** Auditoria das informações gerais (tabela `clientes`). */
 export async function registrarCliente(
   usuario: SessionUser,
   acao: Acao,
@@ -84,16 +106,7 @@ export async function registrarCliente(
 ): Promise<void> {
   let alteracoes: FieldChange[] = [];
   if (acao === 'editou') {
-    alteracoes = diffRegistro(before, after, CLIENTE_LABELS);
-    // Credenciais sensíveis: registramos só que mudaram, nunca os valores.
-    if (credResumo(before) !== credResumo(after)) {
-      alteracoes.push({
-        campo: 'credenciais',
-        rotulo: 'Credenciais de acesso',
-        de: null,
-        para: 'atualizadas',
-      });
-    }
+    alteracoes = diffRegistro(before, after, CLIENTE_GERAL_LABELS);
     if (alteracoes.length === 0) return; // edição sem mudança real — não registra
   }
   await writeAudit({
@@ -101,6 +114,41 @@ export async function registrarCliente(
     entidade_id: after.id,
     entidade_label: `${after.codigo} — ${after.nome}`,
     acao,
+    usuario,
+    alteracoes,
+  });
+}
+
+/** Auditoria dos dados de folha em diante (tabela `cliente_folha`). */
+export async function registrarClienteFolha(
+  usuario: SessionUser,
+  before: FichaSnapshot,
+  after: FichaSnapshot,
+): Promise<void> {
+  const alteracoes = diffRegistro(before.folha, after.folha ?? {}, CLIENTE_FOLHA_LABELS);
+  if (sindicatosResumo(before) !== sindicatosResumo(after)) {
+    alteracoes.push({
+      campo: 'sindicatos',
+      rotulo: 'Informações sindicais',
+      de: `${before.sindicatos?.length ?? 0} item(ns)`,
+      para: `${after.sindicatos?.length ?? 0} item(ns)`,
+    });
+  }
+  // Credenciais sensíveis: registramos só que mudaram, nunca os valores.
+  if (credResumo(before) !== credResumo(after)) {
+    alteracoes.push({
+      campo: 'credenciais',
+      rotulo: 'Senhas / credenciais de acesso',
+      de: null,
+      para: 'atualizadas',
+    });
+  }
+  if (alteracoes.length === 0) return;
+  await writeAudit({
+    entidade: 'cliente',
+    entidade_id: after.id,
+    entidade_label: `${after.codigo} — ${after.nome}`,
+    acao: 'editou',
     usuario,
     alteracoes,
   });
@@ -154,6 +202,45 @@ export async function registrarConvencao(
     entidade: 'convencao',
     entidade_id: after.id,
     entidade_label: after.apelido,
+    acao,
+    usuario,
+    alteracoes,
+  });
+}
+
+// ------------------------------------------------------------------ Ocorrência
+
+interface OcorrenciaSnapshot {
+  id: string;
+  data: string;
+  cliente_nome: string;
+  situacao: string;
+  [key: string]: unknown;
+}
+
+/** 'YYYY-MM-DD' -> 'DD/MM/AAAA' para o rótulo do evento. */
+function formatData(data: string): string {
+  const [y, m, d] = data.slice(0, 10).split('-');
+  return y && m && d ? `${d}/${m}/${y}` : data;
+}
+
+export async function registrarOcorrencia(
+  usuario: SessionUser,
+  acao: Acao,
+  before: OcorrenciaSnapshot | null,
+  after: OcorrenciaSnapshot | null,
+): Promise<void> {
+  const snap = after ?? before;
+  if (!snap) return;
+  let alteracoes: FieldChange[] = [];
+  if (acao === 'editou') {
+    alteracoes = diffRegistro(before, after!, OCORRENCIA_LABELS);
+    if (alteracoes.length === 0) return; // edição sem mudança real — não registra
+  }
+  await writeAudit({
+    entidade: 'ocorrencia',
+    entidade_id: snap.id,
+    entidade_label: `${snap.cliente_nome} — ${formatData(snap.data)}`,
     acao,
     usuario,
     alteracoes,

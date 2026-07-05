@@ -62,7 +62,7 @@ Uma mesma convenção aplica-se a vários clientes. Hoje esse vínculo é manual
 
 Agrupado nos mesmos blocos da planilha:
 
-- **Informações gerais:** código da empresa, nome, CNPJ, tipo de cliente, regime de tributação, situação, data do evento da situação, responsável.
+- **Clientes:** código da empresa, nome, CNPJ, tipo de cliente, regime de tributação, situação, data do evento da situação, responsável.
 - **Folha de pagamento:** possui folha?, forma de pagamento dos salários, apura o ponto pelo escritório?, realiza lançamentos?, plano de saúde (concede?, operadora, beneficiários), fator "R"?, atividade concomitante?, construção civil?, CPRB?, observações importantes (texto livre), prazo para envio das folhas.
 - **Rotinas automáticas:** calcula e gera a folha via rotina automática?
 - **Admissão:** prazo do contrato de experiência, lançamentos fixos, particularidades do cliente, relatórios gerados na admissão (texto livre extenso).

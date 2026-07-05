@@ -1,7 +1,9 @@
+import AddIcon from '@mui/icons-material/Add';
+import BadgeIcon from '@mui/icons-material/Badge';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
-  Chip,
+  Button,
   CircularProgress,
   InputAdornment,
   MenuItem,
@@ -19,9 +21,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchFiltros, listClientes } from '../api/resources';
-import { EmptyState, Mono, SituacaoChip } from '../components/ui';
+import { EmptyState, Mono, SituacaoChip, formatDate } from '../components/ui';
 
-export function ClientesListPage() {
+export function InformacoesGeraisListPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [situacao, setSituacao] = useState('');
@@ -46,17 +48,23 @@ export function ClientesListPage() {
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5">Informações Gerais</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <BadgeIcon color="primary" />
+            <Typography variant="h5">Clientes</Typography>
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             {clientes ? `${clientes.length} cliente(s)` : 'Carregando...'}
           </Typography>
         </Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/informacoes-gerais/novo')}>
+          Novo cliente
+        </Button>
       </Stack>
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <TextField
-            placeholder="Buscar por nome, CNPJ ou código"
+            placeholder="Buscar por razão social, CNPJ ou código"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             fullWidth
@@ -106,11 +114,11 @@ export function ClientesListPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Código</TableCell>
-                <TableCell>Nome</TableCell>
+                <TableCell>Razão Social</TableCell>
                 <TableCell>CNPJ</TableCell>
+                <TableCell>Tipo</TableCell>
                 <TableCell>Situação</TableCell>
-                <TableCell>Responsável</TableCell>
-                <TableCell>Convenção</TableCell>
+                <TableCell>Data da situação</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -119,23 +127,19 @@ export function ClientesListPage() {
                   key={c.id}
                   hover
                   sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/clientes/${c.id}`)}
+                  onClick={() => navigate(`/informacoes-gerais/${c.id}/editar`)}
                 >
                   <TableCell>
                     <Mono sx={{ fontWeight: 600, color: 'text.secondary' }}>{c.codigo}</Mono>
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{c.nome}</TableCell>
                   <TableCell>{c.cnpj ? <Mono>{c.cnpj}</Mono> : '—'}</TableCell>
+                  <TableCell>{c.tipo_cliente ?? '—'}</TableCell>
                   <TableCell>
                     <SituacaoChip situacao={c.situacao} />
                   </TableCell>
-                  <TableCell>{c.responsavel ?? '—'}</TableCell>
                   <TableCell>
-                    {c.convencao_apelido ? (
-                      <Chip size="small" label={c.convencao_apelido} variant="outlined" />
-                    ) : (
-                      '—'
-                    )}
+                    <Mono>{formatDate(c.data_evento_situacao)}</Mono>
                   </TableCell>
                 </TableRow>
               ))}

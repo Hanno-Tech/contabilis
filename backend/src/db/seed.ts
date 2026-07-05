@@ -18,6 +18,7 @@ function excelToISO(serial: number): string {
 async function reset() {
   // Ordem respeita as FKs.
   await db.deleteFrom('cliente_credenciais').execute();
+  await db.deleteFrom('cliente_folha').execute();
   await db.deleteFrom('clientes').execute();
   await db.deleteFrom('convencao_pisos').execute();
   await db.deleteFrom('convencao_regras').execute();
@@ -160,6 +161,14 @@ async function seedClientes() {
       situacao: 'Ativa',
       data_evento_situacao: null,
       responsavel: 'Gisele',
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+
+  await db
+    .insertInto('cliente_folha')
+    .values({
+      cliente_id: dixem.id,
       possui_folha: 'Possui apenas folha',
       forma_pagamento_salarios: 'Dinheiro',
       apura_ponto_escritorio: 'Não',
@@ -195,8 +204,7 @@ async function seedClientes() {
       inss_salario_contribuicao: null,
       inss_aliquota: null,
     })
-    .returning('id')
-    .executeTakeFirstOrThrow();
+    .execute();
 
   await db
     .insertInto('cliente_credenciais')
@@ -210,7 +218,7 @@ async function seedClientes() {
     })
     .execute();
 
-  await db
+  const portabilis = await db
     .insertInto('clientes')
     .values({
       codigo: 92,
@@ -220,6 +228,14 @@ async function seedClientes() {
       regime_tributacao: 'Lucro Real',
       situacao: 'Ativa',
       responsavel: 'Gisele',
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+
+  await db
+    .insertInto('cliente_folha')
+    .values({
+      cliente_id: portabilis.id,
       possui_folha: 'Possui folha e pró labore',
       forma_pagamento_salarios: 'Dinheiro',
       apura_ponto_escritorio: 'Não',
@@ -254,21 +270,19 @@ async function seedClientes() {
       inss_salario_contribuicao: null,
       inss_aliquota: null,
     })
-    .returning('id')
-    .executeTakeFirstOrThrow()
-    .then((portabilis) =>
-      db
-        .insertInto('cliente_credenciais')
-        .values({
-          cliente_id: portabilis.id,
-          tipo: 'seguro_desemprego',
-          usuario: '11258607000192',
-          senha_cipher: encrypt('CONTMINOTTO'),
-          email: null,
-          email_senha_cipher: null,
-        })
-        .execute(),
-    );
+    .execute();
+
+  await db
+    .insertInto('cliente_credenciais')
+    .values({
+      cliente_id: portabilis.id,
+      tipo: 'seguro_desemprego',
+      usuario: '11258607000192',
+      senha_cipher: encrypt('CONTMINOTTO'),
+      email: null,
+      email_senha_cipher: null,
+    })
+    .execute();
 }
 
 async function main() {

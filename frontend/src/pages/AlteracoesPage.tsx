@@ -1,6 +1,7 @@
 import DescriptionIcon from '@mui/icons-material/Description';
 import GroupsIcon from '@mui/icons-material/Groups';
 import HistoryIcon from '@mui/icons-material/History';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Avatar,
@@ -63,11 +64,28 @@ function ChangeRow({ change }: { change: FieldChange }) {
   );
 }
 
+const ENTIDADE_CONFIG = {
+  cliente: { label: 'cliente', artigo: 'o', icon: <GroupsIcon />, destino: (id: string) => `/clientes/${id}` },
+  convencao: { label: 'convenção', artigo: 'a', icon: <DescriptionIcon />, destino: (id: string) => `/cct/${id}` },
+  ocorrencia: {
+    label: 'ocorrência',
+    artigo: 'a',
+    icon: <ReportProblemOutlinedIcon />,
+    destino: (id: string) => `/ocorrencias/${id}/editar`,
+  },
+} as const;
+
+const ACAO_CONFIG = {
+  criou: { verbo: 'criou', chip: 'Criação', color: 'success' as const },
+  editou: { verbo: 'editou', chip: 'Edição', color: 'primary' as const },
+  excluiu: { verbo: 'excluiu', chip: 'Exclusão', color: 'error' as const },
+};
+
 function AlteracaoCard({ item }: { item: Alteracao }) {
   const navigate = useNavigate();
-  const isCliente = item.entidade === 'cliente';
-  const destino = isCliente ? `/clientes/${item.entidade_id}` : `/cct/${item.entidade_id}`;
-  const entidadeLabel = isCliente ? 'Cliente' : 'Convenção';
+  const entidade = ENTIDADE_CONFIG[item.entidade];
+  const acao = ACAO_CONFIG[item.acao];
+  const excluido = item.acao === 'excluiu'; // registro não existe mais — não navega
 
   return (
     <Paper variant="outlined" sx={{ p: 2, mb: 1.5 }}>
@@ -85,24 +103,18 @@ function AlteracaoCard({ item }: { item: Alteracao }) {
             sx={{ mb: 0.5 }}
           >
             <Typography variant="body2">
-              <strong>{item.usuario_nome ?? 'Alguém'}</strong>{' '}
-              {item.acao === 'criou' ? 'criou' : 'editou'} {isCliente ? 'o' : 'a'}{' '}
-              {entidadeLabel.toLowerCase()}
+              <strong>{item.usuario_nome ?? 'Alguém'}</strong> {acao.verbo} {entidade.artigo}{' '}
+              {entidade.label}
             </Typography>
             <Chip
               size="small"
-              icon={isCliente ? <GroupsIcon /> : <DescriptionIcon />}
+              icon={entidade.icon}
               label={item.entidade_label ?? '—'}
               variant="outlined"
-              onClick={() => navigate(destino)}
-              sx={{ cursor: 'pointer', maxWidth: 320 }}
+              onClick={excluido ? undefined : () => navigate(entidade.destino(item.entidade_id))}
+              sx={{ cursor: excluido ? 'default' : 'pointer', maxWidth: 320 }}
             />
-            <Chip
-              size="small"
-              label={item.acao === 'criou' ? 'Criação' : 'Edição'}
-              color={item.acao === 'criou' ? 'success' : 'primary'}
-              variant="outlined"
-            />
+            <Chip size="small" label={acao.chip} color={acao.color} variant="outlined" />
           </Stack>
           <Typography variant="caption" color="text.secondary">
             <Mono>{formatDateTime(item.created_at)}</Mono>
@@ -123,7 +135,7 @@ function AlteracaoCard({ item }: { item: Alteracao }) {
 
 export function AlteracoesPage() {
   const [q, setQ] = useState('');
-  const [entidade, setEntidade] = useState<'' | 'cliente' | 'convencao'>('');
+  const [entidade, setEntidade] = useState<'' | 'cliente' | 'convencao' | 'ocorrencia'>('');
 
   const { data, isFetching } = useQuery({
     queryKey: ['alteracoes', { q, entidade }],
@@ -172,6 +184,7 @@ export function AlteracoesPage() {
           >
             <MenuItem value="">Todos</MenuItem>
             <MenuItem value="cliente">Clientes</MenuItem>
+            <MenuItem value="ocorrencia">Ocorrências</MenuItem>
             <MenuItem value="convencao">Convenções</MenuItem>
           </TextField>
         </Stack>

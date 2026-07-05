@@ -124,6 +124,47 @@ export function formatDate(value: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
+// -------------------------------------------------------------- CNPJ / CPF
+
+function maskCpf(clean: string): string {
+  const c = clean.slice(0, 11);
+  let out = c.slice(0, 3);
+  if (c.length > 3) out += '.' + c.slice(3, 6);
+  if (c.length > 6) out += '.' + c.slice(6, 9);
+  if (c.length > 9) out += '-' + c.slice(9, 11);
+  return out;
+}
+
+function maskCnpj(clean: string): string {
+  const c = clean.slice(0, 14);
+  let out = c.slice(0, 2);
+  if (c.length > 2) out += '.' + c.slice(2, 5);
+  if (c.length > 5) out += '.' + c.slice(5, 8);
+  if (c.length > 8) out += '/' + c.slice(8, 12);
+  if (c.length > 12) out += '-' + c.slice(12, 14);
+  return out;
+}
+
+/**
+ * Máscara de documento: CPF (000.000.000-00) ou CNPJ — numérico ou alfanumérico
+ * (regra da Receita: 12 posições alfanuméricas + 2 dígitos verificadores).
+ * Até 11 caracteres só-numéricos são tratados como CPF; caso contrário, CNPJ.
+ */
+export function formatDocumento(raw: string): string {
+  const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const isCpf = clean.length <= 11 && /^\d*$/.test(clean);
+  return isCpf ? maskCpf(clean) : maskCnpj(clean);
+}
+
+const CPF_RE = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
+const CNPJ_RE = /^[A-Z0-9]{2}\.[A-Z0-9]{3}\.[A-Z0-9]{3}\/[A-Z0-9]{4}-\d{2}$/;
+
+/** Valida CPF ou CNPJ (numérico/alfanumérico) já formatado. */
+export function isValidDocumento(value: string): boolean {
+  const v = value.trim().toUpperCase();
+  return CPF_RE.test(v) || CNPJ_RE.test(v);
+}
+
 /** Formata número/string numérica em R$. */
 export function formatMoney(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—';

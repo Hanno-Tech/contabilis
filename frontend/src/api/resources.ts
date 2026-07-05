@@ -5,9 +5,12 @@ import type {
   Cct,
   CctListItem,
   Cliente,
+  ClienteFicha,
   ClienteListItem,
   CredencialRevelada,
   Filtros,
+  Ocorrencia,
+  OcorrenciaOpcoes,
   SessionUser,
 } from '../types';
 
@@ -49,13 +52,9 @@ export async function fetchFiltros() {
   return data;
 }
 
+// Clientes
 export async function fetchCliente(id: string) {
   const { data } = await api.get<Cliente>(`/clientes/${id}`);
-  return data;
-}
-
-export async function revelarCredenciais(id: string) {
-  const { data } = await api.get<CredencialRevelada[]>(`/clientes/${id}/credenciais`);
   return data;
 }
 
@@ -66,6 +65,22 @@ export async function createCliente(payload: Record<string, unknown>) {
 
 export async function updateCliente(id: string, payload: Record<string, unknown>) {
   const { data } = await api.put<Cliente>(`/clientes/${id}`, payload);
+  return data;
+}
+
+// Ficha completa (Informações Gerais) e edição da folha
+export async function fetchFicha(id: string) {
+  const { data } = await api.get<ClienteFicha>(`/clientes/${id}/ficha`);
+  return data;
+}
+
+export async function updateFolha(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<ClienteFicha>(`/clientes/${id}/folha`, payload);
+  return data;
+}
+
+export async function revelarCredenciais(id: string) {
+  const { data } = await api.get<CredencialRevelada[]>(`/clientes/${id}/credenciais`);
   return data;
 }
 
@@ -97,7 +112,7 @@ export async function updateCct(id: string, payload: Record<string, unknown>) {
 
 // ------------------------------------------------------------------ Alterações
 export interface AlteracaoQuery {
-  entidade?: 'cliente' | 'convencao';
+  entidade?: 'cliente' | 'convencao' | 'ocorrencia';
   entidade_id?: string;
   q?: string;
 }
@@ -105,4 +120,41 @@ export interface AlteracaoQuery {
 export async function listAlteracoes(params: AlteracaoQuery = {}) {
   const { data } = await api.get<Alteracao[]>('/alteracoes', { params });
   return data;
+}
+
+// ----------------------------------------------------------------- Ocorrências
+export interface OcorrenciaQuery {
+  q?: string;
+  cliente_id?: string;
+  situacao?: string;
+  responsavel_id?: string;
+}
+
+export async function listOcorrencias(params: OcorrenciaQuery = {}) {
+  const { data } = await api.get<Ocorrencia[]>('/ocorrencias', { params });
+  return data;
+}
+
+export async function fetchOcorrenciaOpcoes() {
+  const { data } = await api.get<OcorrenciaOpcoes>('/ocorrencias/opcoes');
+  return data;
+}
+
+export async function fetchOcorrencia(id: string) {
+  const { data } = await api.get<Ocorrencia>(`/ocorrencias/${id}`);
+  return data;
+}
+
+export async function createOcorrencia(payload: Record<string, unknown>) {
+  const { data } = await api.post<Ocorrencia>('/ocorrencias', payload);
+  return data;
+}
+
+export async function updateOcorrencia(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<Ocorrencia>(`/ocorrencias/${id}`, payload);
+  return data;
+}
+
+export async function deleteOcorrencia(id: string) {
+  await api.delete(`/ocorrencias/${id}`);
 }
