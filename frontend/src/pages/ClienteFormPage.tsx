@@ -294,7 +294,9 @@ export function ClienteFormPage() {
   };
 
   const cardByTitle = (title: string) => SCALAR_CARDS.find((c) => c.title === title)!;
-  const ScalarCard = ({ title }: { title: string }) => {
+  // Função que retorna JSX (NÃO um componente) — evita remontar o subtree a cada
+  // tecla, o que fazia os inputs perderem o foco.
+  const scalarCard = (title: string) => {
     const card = cardByTitle(title);
     return (
       <SectionCard title={card.title}>
@@ -337,13 +339,13 @@ export function ClienteFormPage() {
         </Grid>
       </SectionCard>
 
-      <ScalarCard title="Admissão" />
+      {scalarCard('Admissão')}
 
       <SectionCard title="Rescisão">
         <Typography variant="body2" color="text.disabled">Campos a definir.</Typography>
       </SectionCard>
 
-      <ScalarCard title="Fechamento da folha" />
+      {scalarCard('Fechamento da folha')}
 
       {/* Informações sindicais (vários) */}
       <SectionCard
@@ -414,9 +416,9 @@ export function ClienteFormPage() {
         </Stack>
       </SectionCard>
 
-      <ScalarCard title="Informações sobre SST" />
-      <ScalarCard title="Forma de envio dos documentos" />
-      <ScalarCard title="Dados de contribuintes individuais" />
+      {scalarCard('Informações sobre SST')}
+      {scalarCard('Forma de envio dos documentos')}
+      {scalarCard('Dados de contribuintes individuais')}
 
       {/* Empregador doméstico */}
       <SectionCard title="Dados do empregador doméstico">
@@ -429,7 +431,7 @@ export function ClienteFormPage() {
         </Grid>
       </SectionCard>
 
-      <ScalarCard title="Procurações" />
+      {scalarCard('Procurações')}
 
       {/* Senhas (por órgão) */}
       <SectionCard
