@@ -12,9 +12,10 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "migrate": "node-pg-migrate -j js -m migrations --envPath .env",
+    "db:migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts",
-    "db:refresh": "tsx src/db/reset.ts && node-pg-migrate -j js -m migrations --envPath .env up && tsx src/db/seed.ts"
+    "db:refresh": "tsx src/db/reset.ts && tsx src/db/migrate.ts && tsx src/db/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
