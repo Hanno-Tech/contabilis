@@ -131,8 +131,8 @@ export function ClientesListPage() {
                   </TableCell>
                   <TableCell>{c.responsavel ?? '—'}</TableCell>
                   <TableCell>
-                    {c.convencao_apelido ? (
-                      <Chip size="small" label={c.convencao_apelido} variant="outlined" />
+                    {c.convencao_nome ? (
+                      <Chip size="small" label={c.convencao_nome} variant="outlined" />
                     ) : (
                       '—'
                     )}

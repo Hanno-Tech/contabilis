@@ -60,7 +60,6 @@ const empregadoDomesticoSchema = z
 // INFORMAÇÕES SINDICAIS: a empresa pode ter vários sindicatos/convenções.
 const sindicatoSchema = z.object({
   sindicato: text,
-  convencao_id: z.string().uuid().nullable().optional(),
   convencao_aplicavel_nome: text,
   situacao_convencao: text,
   recolhe_contribuicao: text,

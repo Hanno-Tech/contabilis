@@ -48,7 +48,6 @@ export async function listClientes(filters: ClienteFilters) {
   let query = db
     .selectFrom('clientes')
     .leftJoin('cliente_folha', 'cliente_folha.cliente_id', 'clientes.id')
-    .leftJoin('convencoes', 'convencoes.id', 'cliente_folha.convencao_id')
     .select([
       'clientes.id',
       'clientes.codigo',
@@ -59,7 +58,7 @@ export async function listClientes(filters: ClienteFilters) {
       'clientes.data_evento_situacao',
       'clientes.responsavel',
       'clientes.regime_tributacao',
-      'convencoes.apelido as convencao_apelido',
+      'cliente_folha.convencao_aplicavel_nome as convencao_nome',
     ]);
 
   if (filters.q) {
@@ -168,7 +167,6 @@ const FOLHA_COLUMNS = [
   'cliente_folha.envio_contato',
   'cliente_folha.sindicato',
   'cliente_folha.convencao_aplicavel_nome',
-  'cliente_folha.convencao_id',
   'cliente_folha.possui_laudos_sst',
   'cliente_folha.empresa_responsavel_sst',
   'cliente_folha.data_vencimento_laudo',
@@ -239,9 +237,8 @@ function folhaColumns(input: FolhaInput) {
     inss_codigo_recolhimento: input.inss_codigo_recolhimento ?? null,
     inss_salario_contribuicao: numToStr(input.inss_salario_contribuicao),
     inss_aliquota: numToStr(input.inss_aliquota),
-    // Espelho do 1º sindicato/convenção (mantém dashboard/CCT/lista funcionando).
+    // Espelho do 1º sindicato/convenção (mantém dashboard/lista funcionando).
     sindicato: input.sindicatos?.[0]?.sindicato ?? null,
-    convencao_id: input.sindicatos?.[0]?.convencao_id ?? null,
     convencao_aplicavel_nome: input.sindicatos?.[0]?.convencao_aplicavel_nome ?? null,
   };
 }
@@ -257,24 +254,19 @@ export async function getFicha(id: string) {
 
   const folha = await db
     .selectFrom('cliente_folha')
-    .leftJoin('convencoes', 'convencoes.id', 'cliente_folha.convencao_id')
-    .select([...FOLHA_COLUMNS, 'convencoes.apelido as convencao_apelido'])
+    .select([...FOLHA_COLUMNS])
     .where('cliente_folha.cliente_id', '=', id)
     .executeTakeFirst();
 
   const sindicatos = await db
     .selectFrom('cliente_sindicatos')
-    .leftJoin('convencoes', 'convencoes.id', 'cliente_sindicatos.convencao_id')
     .select([
       'cliente_sindicatos.id',
       'cliente_sindicatos.sindicato',
-      'cliente_sindicatos.convencao_id',
       'cliente_sindicatos.convencao_aplicavel_nome',
       'cliente_sindicatos.situacao_convencao',
       'cliente_sindicatos.recolhe_contribuicao',
       'cliente_sindicatos.ordem',
-      'convencoes.apelido as convencao_apelido',
-      'convencoes.situacao as convencao_situacao',
     ])
     .where('cliente_sindicatos.cliente_id', '=', id)
     .orderBy('cliente_sindicatos.ordem')
@@ -316,7 +308,6 @@ async function replaceSindicatos(
     .filter(
       (s) =>
         s.sindicato ||
-        s.convencao_id ||
         s.convencao_aplicavel_nome ||
         s.situacao_convencao ||
         s.recolhe_contribuicao,
@@ -324,7 +315,6 @@ async function replaceSindicatos(
     .map((s, i) => ({
       cliente_id: clienteId,
       sindicato: s.sindicato ?? null,
-      convencao_id: s.convencao_id ?? null,
       convencao_aplicavel_nome: s.convencao_aplicavel_nome ?? null,
       situacao_convencao: s.situacao_convencao ?? null,
       recolhe_contribuicao: s.recolhe_contribuicao ?? null,

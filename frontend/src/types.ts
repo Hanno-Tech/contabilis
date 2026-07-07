@@ -12,24 +12,38 @@ export interface FieldChange {
 }
 
 export interface Vencimento {
-  categoria: 'procuracao' | 'laudo' | 'convencao';
+  categoria: 'procuracao' | 'laudo';
   tipo: string;
   data: string;
   dias: number;
   registro_id: string;
   registro_codigo: number | null;
   registro_nome: string;
-  destino: 'cliente' | 'convencao';
+  destino: 'cliente';
+}
+
+export interface ClienteIncompleto {
+  id: string;
+  codigo: number;
+  nome: string;
+  faltantes: string[];
+}
+
+export interface EventoProximo {
+  id: string;
+  cliente_id: string;
+  codigo: number;
+  nome: string;
+  colaborador: string | null;
+  descricao: string | null;
+  competencia: string;
+  meses: number;
 }
 
 export interface Dashboard {
   kpis: {
     clientes_total: number;
     clientes_ativos: number;
-    clientes_sem_convencao: number;
-    convencoes_total: number;
-    convencoes_vigentes: number;
-    convencoes_expiradas: number;
     vencimentos_vencidos: number;
     vencimentos_30: number;
   };
@@ -38,18 +52,21 @@ export interface Dashboard {
     por_responsavel: { label: string; total: number }[];
     por_regime: { label: string; total: number }[];
     por_situacao: { label: string; total: number }[];
-    top_convencoes: { label: string; total: number }[];
   };
   atividade: {
     ultimos_7: number;
     ultimos_30: number;
     recentes: Alteracao[];
   };
+  incompletos: ClienteIncompleto[];
+  eventos: EventoProximo[];
 }
+
+export type Entidade = 'cliente' | 'ocorrencia' | 'pendencia' | 'evento';
 
 export interface Alteracao {
   id: string;
-  entidade: 'cliente' | 'convencao' | 'ocorrencia';
+  entidade: Entidade;
   entidade_id: string;
   entidade_label: string | null;
   acao: 'criou' | 'editou' | 'excluiu';
@@ -69,7 +86,7 @@ export interface ClienteListItem {
   data_evento_situacao: string | null;
   responsavel: string | null;
   regime_tributacao: string | null;
-  convencao_apelido: string | null;
+  convencao_nome: string | null;
 }
 
 export interface CredencialMascarada {
@@ -95,13 +112,10 @@ export interface CredencialRevelada {
 export interface ClienteSindicato {
   id?: string;
   sindicato: string | null;
-  convencao_id: string | null;
   convencao_aplicavel_nome: string | null;
   situacao_convencao: string | null;
   recolhe_contribuicao: string | null;
   ordem?: number;
-  convencao_apelido?: string | null;
-  convencao_situacao?: string | null;
 }
 
 /** Clientes do cliente (tabela `clientes`). */
@@ -152,8 +166,6 @@ export interface ClienteFolha {
   envio_observacoes: string | null;
   sindicato: string | null;
   convencao_aplicavel_nome: string | null;
-  convencao_id: string | null;
-  convencao_apelido: string | null;
   possui_laudos_sst: string | null;
   empresa_responsavel_sst: string | null;
   data_vencimento_laudo: string | null;
@@ -211,50 +223,59 @@ export interface Ocorrencia {
   cliente_nome: string;
 }
 
-export interface CctListItem {
+export interface StatusOpcoes {
+  usuarios: Usuario[];
+  situacoes: string[];
+}
+
+export interface Pendencia {
   id: string;
-  apelido: string;
-  sindicato_patronal: string | null;
-  sindicato_laboral: string | null;
+  cliente_id: string;
+  data: string;
+  descricao: string;
   situacao: string;
-  vigencia_inicio: string | null;
-  vigencia_fim: string | null;
-  data_expiracao: string | null;
-  version: number;
-}
-
-export interface Piso {
-  id?: string;
-  funcao: string;
-  valor: string | null;
-  ordem?: number;
-}
-
-export interface Regra {
-  id?: string;
-  categoria: string;
-  titulo: string | null;
-  conteudo: string;
-  ordem?: number;
-}
-
-export interface Cct {
-  id: string;
-  apelido: string;
-  sindicato_patronal: string | null;
-  sindicato_laboral: string | null;
-  situacao: string;
-  vigencia_inicio: string | null;
-  vigencia_fim: string | null;
-  data_expiracao: string | null;
-  adicional_noturno: string | null;
-  he_dias_normais: string | null;
-  he_domingos_feriados: string | null;
-  he_observacoes: string | null;
-  contatos_sindicato: string | null;
+  usuario_cadastro_id: string | null;
+  usuario_cadastro_nome: string | null;
+  usuario_solucao_id: string | null;
+  usuario_solucao_nome: string | null;
   version: number;
   created_at: string;
   updated_at: string;
-  pisos: Piso[];
-  regras: Regra[];
+  cliente_codigo: number;
+  cliente_nome: string;
 }
+
+export interface EventoFuturo {
+  id: string;
+  cliente_id: string;
+  competencia: string;
+  colaborador_nome: string | null;
+  descricao: string | null;
+  situacao: string;
+  usuario_id: string | null;
+  usuario_nome: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  cliente_codigo: number;
+  cliente_nome: string;
+}
+
+export interface RelatorioResumo {
+  key: string;
+  titulo: string;
+  descricao: string;
+}
+
+export interface RelatorioColuna {
+  key: string;
+  label: string;
+}
+
+export interface Relatorio {
+  titulo: string;
+  colunas: RelatorioColuna[];
+  linhas: Record<string, string | number | null>[];
+}
+
+

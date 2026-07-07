@@ -4,11 +4,12 @@ import type { SessionUser } from '../../lib/jwt.js';
 import {
   CLIENTE_FOLHA_LABELS,
   CLIENTE_GERAL_LABELS,
-  CONVENCAO_LABELS,
+  EVENTO_LABELS,
   OCORRENCIA_LABELS,
+  PENDENCIA_LABELS,
 } from './audit.labels.js';
 
-export type Entidade = 'cliente' | 'convencao' | 'ocorrencia';
+export type Entidade = 'cliente' | 'ocorrencia' | 'pendencia' | 'evento';
 export type Acao = 'criou' | 'editou' | 'excluiu';
 
 /** Normaliza um valor de campo para string comparável (vazio → null). */
@@ -65,7 +66,7 @@ export async function writeAudit(args: WriteArgs): Promise<void> {
 // --------------------------------------------------------------------- Cliente
 
 type CredResumo = Array<{ tipo: string; link?: string | null; usuario: string | null; email: string | null; tem_senha: boolean; tem_email_senha: boolean }>;
-type SindicatoResumo = Array<{ sindicato?: string | null; convencao_id?: string | null; convencao_aplicavel_nome?: string | null; situacao_convencao?: string | null; recolhe_contribuicao?: string | null }>;
+type SindicatoResumo = Array<{ sindicato?: string | null; convencao_aplicavel_nome?: string | null; situacao_convencao?: string | null; recolhe_contribuicao?: string | null }>;
 
 interface ClienteSnapshot {
   id: string;
@@ -93,7 +94,7 @@ function credResumo(snap: { credenciais?: CredResumo } | null): string {
 function sindicatosResumo(snap: { sindicatos?: SindicatoResumo } | null): string {
   if (!snap?.sindicatos) return '';
   return snap.sindicatos
-    .map((s) => `${s.sindicato ?? ''}:${s.convencao_id ?? ''}:${s.convencao_aplicavel_nome ?? ''}:${s.situacao_convencao ?? ''}:${s.recolhe_contribuicao ?? ''}`)
+    .map((s) => `${s.sindicato ?? ''}:${s.convencao_aplicavel_nome ?? ''}:${s.situacao_convencao ?? ''}:${s.recolhe_contribuicao ?? ''}`)
     .join('|');
 }
 
@@ -154,60 +155,6 @@ export async function registrarClienteFolha(
   });
 }
 
-// ------------------------------------------------------------------- Convenção
-
-interface CctSnapshot {
-  id: string;
-  apelido: string;
-  pisos?: Array<{ funcao: string; valor: string | null }>;
-  regras?: Array<{ categoria: string; titulo: string | null; conteudo: string }>;
-  [key: string]: unknown;
-}
-
-function pisosResumo(snap: CctSnapshot | null): string {
-  return JSON.stringify(snap?.pisos?.map((p) => [p.funcao, p.valor]) ?? []);
-}
-function regrasResumo(snap: CctSnapshot | null): string {
-  return JSON.stringify(snap?.regras?.map((r) => [r.categoria, r.titulo, r.conteudo]) ?? []);
-}
-
-export async function registrarConvencao(
-  usuario: SessionUser,
-  acao: Acao,
-  before: CctSnapshot | null,
-  after: CctSnapshot,
-): Promise<void> {
-  let alteracoes: FieldChange[] = [];
-  if (acao === 'editou') {
-    alteracoes = diffRegistro(before, after, CONVENCAO_LABELS);
-    if (pisosResumo(before) !== pisosResumo(after)) {
-      alteracoes.push({
-        campo: 'pisos',
-        rotulo: 'Pisos salariais',
-        de: `${before?.pisos?.length ?? 0} item(ns)`,
-        para: `${after.pisos?.length ?? 0} item(ns)`,
-      });
-    }
-    if (regrasResumo(before) !== regrasResumo(after)) {
-      alteracoes.push({
-        campo: 'regras',
-        rotulo: 'Regras / cláusulas',
-        de: `${before?.regras?.length ?? 0} item(ns)`,
-        para: `${after.regras?.length ?? 0} item(ns)`,
-      });
-    }
-    if (alteracoes.length === 0) return;
-  }
-  await writeAudit({
-    entidade: 'convencao',
-    entidade_id: after.id,
-    entidade_label: after.apelido,
-    acao,
-    usuario,
-    alteracoes,
-  });
-}
-
 // ------------------------------------------------------------------ Ocorrência
 
 interface OcorrenciaSnapshot {
@@ -241,6 +188,78 @@ export async function registrarOcorrencia(
     entidade: 'ocorrencia',
     entidade_id: snap.id,
     entidade_label: `${snap.cliente_nome} — ${formatData(snap.data)}`,
+    acao,
+    usuario,
+    alteracoes,
+  });
+}
+
+// ------------------------------------------------------------------ Pendência
+
+interface PendenciaSnapshot {
+  id: string;
+  data: string;
+  cliente_nome: string;
+  situacao: string;
+  [key: string]: unknown;
+}
+
+export async function registrarPendencia(
+  usuario: SessionUser,
+  acao: Acao,
+  before: PendenciaSnapshot | null,
+  after: PendenciaSnapshot | null,
+): Promise<void> {
+  const snap = after ?? before;
+  if (!snap) return;
+  let alteracoes: FieldChange[] = [];
+  if (acao === 'editou') {
+    alteracoes = diffRegistro(before, after!, PENDENCIA_LABELS);
+    if (alteracoes.length === 0) return; // edição sem mudança real — não registra
+  }
+  await writeAudit({
+    entidade: 'pendencia',
+    entidade_id: snap.id,
+    entidade_label: `${snap.cliente_nome} — ${formatData(snap.data)}`,
+    acao,
+    usuario,
+    alteracoes,
+  });
+}
+
+// --------------------------------------------------------------- Evento futuro
+
+interface EventoSnapshot {
+  id: string;
+  competencia: string;
+  cliente_nome: string;
+  situacao: string;
+  [key: string]: unknown;
+}
+
+/** 'YYYY-MM-DD' -> 'MM/AAAA' para o rótulo do evento. */
+function formatCompetencia(competencia: string): string {
+  const [y, m] = competencia.slice(0, 10).split('-');
+  return y && m ? `${m}/${y}` : competencia;
+}
+
+export async function registrarEvento(
+  usuario: SessionUser,
+  acao: Acao,
+  before: EventoSnapshot | null,
+  after: EventoSnapshot | null,
+): Promise<void> {
+  const snap = after ?? before;
+  if (!snap) return;
+  let alteracoes: FieldChange[] = [];
+  if (acao === 'editou') {
+    alteracoes = diffRegistro(before, after!, EVENTO_LABELS);
+    if (alteracoes.length === 0) return; // edição sem mudança real — não registra
+  }
+  await writeAudit({
+    entidade: 'evento',
+    entidade_id: snap.id,
+    entidade_label: `${snap.cliente_nome} — ${formatCompetencia(snap.competencia)}`,
     acao,
     usuario,
     alteracoes,

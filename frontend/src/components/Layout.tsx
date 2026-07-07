@@ -1,10 +1,12 @@
 import DashboardIcon from '@mui/icons-material/SpaceDashboard';
-import DescriptionIcon from '@mui/icons-material/Description';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GroupsIcon from '@mui/icons-material/Groups';
 import HistoryIcon from '@mui/icons-material/History';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeIcon from '@mui/icons-material/Badge';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -51,7 +53,9 @@ const navEntries: NavEntry[] = [
       { to: '/', label: 'Dashboards', icon: <DashboardIcon fontSize="small" /> },
       { to: '/clientes', label: 'Informações Gerais', icon: <GroupsIcon fontSize="small" /> },
       { to: '/ocorrencias', label: 'Ocorrências', icon: <ReportProblemOutlinedIcon fontSize="small" /> },
-      { to: '/cct', label: 'Convenções (CCT)', icon: <DescriptionIcon fontSize="small" /> },
+      { to: '/pendencias', label: 'Pendências', icon: <PlaylistAddCheckIcon fontSize="small" /> },
+      { to: '/eventos-futuros', label: 'Eventos futuros', icon: <EventNoteIcon fontSize="small" /> },
+      { to: '/relatorios', label: 'Relatórios', icon: <AssessmentOutlinedIcon fontSize="small" /> },
       { to: '/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
     ],
   },
@@ -311,7 +315,7 @@ export function Layout() {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ px: { xs: 2, sm: 3, md: 5 }, py: { xs: 3, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
+        <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
           <Outlet />
         </Box>
       </Box>

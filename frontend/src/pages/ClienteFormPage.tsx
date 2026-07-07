@@ -19,7 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
-import { fetchFicha, listCct, updateFolha } from '../api/resources';
+import { fetchFicha, updateFolha } from '../api/resources';
 import { SectionCard } from '../components/ui';
 import type { ClienteSindicato } from '../types';
 
@@ -173,7 +173,6 @@ export function ClienteFormPage() {
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const { data: cctList } = useQuery({ queryKey: ['cct'], queryFn: listCct });
   const { data: ficha, isLoading } = useQuery({ queryKey: ['ficha', id], queryFn: () => fetchFicha(id) });
 
   useEffect(() => {
@@ -211,10 +210,9 @@ export function ClienteFormPage() {
     }
 
     payload.sindicatos = sindicatos
-      .filter((s) => s.sindicato || s.convencao_id || s.convencao_aplicavel_nome || s.situacao_convencao || s.recolhe_contribuicao)
+      .filter((s) => s.sindicato || s.convencao_aplicavel_nome || s.situacao_convencao || s.recolhe_contribuicao)
       .map((s) => ({
         sindicato: s.sindicato || null,
-        convencao_id: s.convencao_id || null,
         convencao_aplicavel_nome: s.convencao_aplicavel_nome || null,
         situacao_convencao: s.situacao_convencao || null,
         recolhe_contribuicao: s.recolhe_contribuicao || null,
@@ -354,7 +352,7 @@ export function ClienteFormPage() {
           <Button
             size="small"
             startIcon={<AddIcon />}
-            onClick={() => setSindicatos([...sindicatos, { sindicato: '', convencao_id: null, convencao_aplicavel_nome: '', situacao_convencao: '', recolhe_contribuicao: '' }])}
+            onClick={() => setSindicatos([...sindicatos, { sindicato: '', convencao_aplicavel_nome: '', situacao_convencao: '', recolhe_contribuicao: '' }])}
           >
             Adicionar
           </Button>
@@ -362,7 +360,6 @@ export function ClienteFormPage() {
       >
         <Stack spacing={2}>
           {sindicatos.map((s, i) => {
-            const cct = cctList?.find((c) => c.id === s.convencao_id);
             const set = (patch: Partial<ClienteSindicato>) =>
               setSindicatos(sindicatos.map((x, j) => (j === i ? { ...x, ...patch } : x)));
             return (
@@ -378,15 +375,7 @@ export function ClienteFormPage() {
                     <TextField label="Sindicato ao qual está sujeito" value={s.sindicato ?? ''} onChange={(e) => set({ sindicato: e.target.value })} fullWidth size="small" />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField select label="Convenção vinculada (CCT)" value={s.convencao_id ?? ''} onChange={(e) => set({ convencao_id: e.target.value || null })} fullWidth size="small">
-                      <MenuItem value="">Nenhuma</MenuItem>
-                      {cctList?.map((c) => (
-                        <MenuItem key={c.id} value={c.id}>{c.apelido}</MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField label="Convenção aplicável (texto livre)" value={s.convencao_aplicavel_nome ?? ''} onChange={(e) => set({ convencao_aplicavel_nome: e.target.value })} fullWidth size="small" />
+                    <TextField label="Convenção aplicável" value={s.convencao_aplicavel_nome ?? ''} onChange={(e) => set({ convencao_aplicavel_nome: e.target.value })} fullWidth size="small" />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
@@ -396,7 +385,6 @@ export function ClienteFormPage() {
                       onChange={(e) => set({ situacao_convencao: e.target.value })}
                       fullWidth
                       size="small"
-                      helperText={cct ? `CCT vinculada: ${cct.situacao}` : undefined}
                     >
                       <MenuItem value=""><em>Não informado</em></MenuItem>
                       {SITUACAO_CONVENCAO_OPCOES.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}

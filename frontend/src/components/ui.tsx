@@ -124,6 +124,14 @@ export function formatDate(value: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
+/** Formata 'YYYY-MM-DD' (ou 'YYYY-MM') para a competência 'MM/AAAA'. */
+export function formatCompetencia(value: string | null | undefined): string {
+  if (!value) return '—';
+  const [y, m] = value.slice(0, 10).split('-');
+  if (!y || !m) return value;
+  return `${m}/${y}`;
+}
+
 // -------------------------------------------------------------- CNPJ / CPF
 
 function maskCpf(clean: string): string {

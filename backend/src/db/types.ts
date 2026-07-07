@@ -13,42 +13,6 @@ type Timestamp = ColumnType<Date, Date | string | undefined, Date | string>;
 // Datas "puras" (sem hora) trafegam como string ISO 'YYYY-MM-DD'.
 type DateOnly = ColumnType<string, string | Date, string | Date>;
 
-export interface ConvencoesTable {
-  id: Generated<string>;
-  apelido: string;
-  sindicato_patronal: string | null;
-  sindicato_laboral: string | null;
-  situacao: string; // 'Vigente' | 'Expirada' | ...
-  vigencia_inicio: DateOnly | null;
-  vigencia_fim: DateOnly | null;
-  data_expiracao: DateOnly | null;
-  adicional_noturno: string | null; // numeric -> string no pg driver
-  he_dias_normais: string | null;
-  he_domingos_feriados: string | null;
-  he_observacoes: string | null;
-  contatos_sindicato: string | null;
-  version: Generated<number>;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
-}
-
-export interface ConvencaoPisosTable {
-  id: Generated<string>;
-  convencao_id: string;
-  funcao: string;
-  valor: string | null; // numeric
-  ordem: Generated<number>;
-}
-
-export interface ConvencaoRegrasTable {
-  id: Generated<string>;
-  convencao_id: string;
-  categoria: string; // ex.: 'BANCO DE HORAS', 'AVISO PRÉVIO'
-  titulo: string | null; // subitem (ex.: 'Demais empregados')
-  conteudo: string;
-  ordem: Generated<number>;
-}
-
 /**
  * Cliente — apenas as informações gerais (identidade). É a tabela central
  * referenciada pelos demais módulos. Os dados operacionais ficam em
@@ -112,7 +76,6 @@ export interface ClienteFolhaTable {
   // Sindicato / convenção (legado; fonte principal em cliente_sindicatos)
   sindicato: string | null;
   convencao_aplicavel_nome: string | null;
-  convencao_id: string | null;
   // SST
   possui_laudos_sst: string | null;
   empresa_responsavel_sst: string | null;
@@ -159,7 +122,6 @@ export interface ClienteSindicatosTable {
   id: Generated<string>;
   cliente_id: string;
   sindicato: string | null;
-  convencao_id: string | null;
   convencao_aplicavel_nome: string | null;
   situacao_convencao: string | null; // 'Vigente' | 'Vencida' | 'Não se aplica'
   recolhe_contribuicao: string | null; // 'Sim' | 'Não' | 'Não se aplica'
@@ -209,14 +171,50 @@ export interface OcorrenciasTable {
   updated_at: Generated<Timestamp>;
 }
 
+/**
+ * Pendências — serviços que surgem durante o período da folha. `data` guarda o
+ * dia do cadastro; a situação acompanha o ciclo Aberta → Resolvida/Desconsiderada.
+ */
+export interface PendenciasTable {
+  id: Generated<string>;
+  cliente_id: string;
+  data: DateOnly;
+  descricao: string;
+  usuario_cadastro_id: string | null;
+  usuario_cadastro_nome: string | null;
+  usuario_solucao_id: string | null;
+  usuario_solucao_nome: string | null;
+  situacao: string; // 'Aberta' | 'Desconsiderada' | 'Resolvida'
+  version: Generated<number>;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+}
+
+/**
+ * Eventos futuros — lançamentos programados (ex.: alteração de salário no fim do
+ * ano). `competencia` é o 1º dia do mês de lançamento (permite alertas).
+ */
+export interface EventosFuturosTable {
+  id: Generated<string>;
+  cliente_id: string;
+  competencia: DateOnly;
+  colaborador_nome: string | null;
+  descricao: string | null;
+  usuario_id: string | null;
+  usuario_nome: string | null;
+  situacao: string; // 'A lançar' | 'Lançado' | 'Cancelado'
+  version: Generated<number>;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface Database {
-  convencoes: ConvencoesTable;
-  convencao_pisos: ConvencaoPisosTable;
-  convencao_regras: ConvencaoRegrasTable;
   clientes: ClientesTable;
   cliente_folha: ClienteFolhaTable;
   cliente_credenciais: ClienteCredenciaisTable;
   cliente_sindicatos: ClienteSindicatosTable;
   alteracoes: AlteracoesTable;
   ocorrencias: OcorrenciasTable;
+  pendencias: PendenciasTable;
+  eventos_futuros: EventosFuturosTable;
 }

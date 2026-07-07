@@ -181,18 +181,7 @@ export function ClienteDetailPage() {
               {i > 0 && <Divider sx={{ my: 2 }} />}
               <Grid container spacing={2}>
                 <ReadField label="Sindicato" value={s.sindicato} wide />
-                <ReadField
-                  label="Convenção aplicável"
-                  value={
-                    s.convencao_id ? (
-                      <Link component={RouterLink} to={`/cct/${s.convencao_id}`}>
-                        {s.convencao_apelido ?? 'Ver convenção'}
-                      </Link>
-                    ) : (
-                      s.convencao_aplicavel_nome
-                    )
-                  }
-                />
+                <ReadField label="Convenção aplicável" value={s.convencao_aplicavel_nome} />
                 <ReadField label="Situação da convenção" value={s.situacao_convencao} />
                 <ReadField label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao} />
               </Grid>

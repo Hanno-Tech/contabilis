@@ -52,7 +52,6 @@ export const CLIENTE_FOLHA_LABELS: Record<string, string> = {
   // Sindicato / convenção
   sindicato: 'Sindicato',
   convencao_aplicavel_nome: 'Convenção aplicável (nome)',
-  convencao_apelido: 'Convenção vinculada',
   // SST
   possui_laudos_sst: 'Possui laudos SST',
   empresa_responsavel_sst: 'Empresa responsável SST',
@@ -81,17 +80,18 @@ export const OCORRENCIA_LABELS: Record<string, string> = {
   responsavel_nome: 'Responsável',
 };
 
-export const CONVENCAO_LABELS: Record<string, string> = {
-  apelido: 'Apelido',
-  sindicato_patronal: 'Sindicato patronal',
-  sindicato_laboral: 'Sindicato laboral',
+export const PENDENCIA_LABELS: Record<string, string> = {
+  cliente_nome: 'Cliente',
+  descricao: 'Descrição',
   situacao: 'Situação',
-  vigencia_inicio: 'Início da vigência',
-  vigencia_fim: 'Fim da vigência',
-  data_expiracao: 'Data de expiração',
-  adicional_noturno: 'Adicional noturno',
-  he_dias_normais: 'Hora extra — dias normais',
-  he_domingos_feriados: 'Hora extra — domingos/feriados',
-  he_observacoes: 'Hora extra — observações',
-  contatos_sindicato: 'Contatos do sindicato',
+  usuario_solucao_nome: 'Responsável pela solução',
 };
+
+export const EVENTO_LABELS: Record<string, string> = {
+  cliente_nome: 'Cliente',
+  competencia: 'Competência',
+  colaborador_nome: 'Colaborador',
+  descricao: 'Descrição',
+  situacao: 'Situação',
+};
+

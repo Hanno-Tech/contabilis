@@ -1,10 +1,10 @@
-import DescriptionIcon from '@mui/icons-material/Description';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import GroupsIcon from '@mui/icons-material/Groups';
 import HistoryIcon from '@mui/icons-material/History';
 import InsightsIcon from '@mui/icons-material/Insights';
-import LinkOffIcon from '@mui/icons-material/LinkOff';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PieChartIcon from '@mui/icons-material/PieChart';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
   Box,
   Chip,
@@ -31,8 +31,8 @@ import {
 } from 'recharts';
 import { fetchDashboard } from '../api/resources';
 import { useAuth } from '../auth/AuthContext';
-import { EmptyState, Mono, SectionCard, formatDate } from '../components/ui';
-import type { Dashboard, Vencimento } from '../types';
+import { EmptyState, Mono, SectionCard, formatCompetencia, formatDate } from '../components/ui';
+import type { ClienteIncompleto, Dashboard, EventoProximo, Vencimento } from '../types';
 
 const CHART_COLORS = ['#FF8A1E', '#0E9F6E', '#52473D', '#0EA5E9', '#D97706', '#E11D48', '#14B8A6', '#EF8E19'];
 
@@ -136,8 +136,7 @@ function textoDias(dias: number): string {
   return `em ${dias} dia${dias === 1 ? '' : 's'}`;
 }
 
-function categoriaIcon(categoria: Vencimento['categoria']) {
-  if (categoria === 'convencao') return <DescriptionIcon sx={{ fontSize: 18 }} />;
+function categoriaIcon(_categoria: Vencimento['categoria']) {
   return <GroupsIcon sx={{ fontSize: 18 }} />;
 }
 
@@ -235,7 +234,7 @@ function VencimentosBlock({ data }: { data: Vencimento[] }) {
             <VencimentoRow
               key={`${v.registro_id}-${v.tipo}-${i}`}
               v={v}
-              onClick={() => navigate(`/${v.destino === 'cliente' ? 'clientes' : 'cct'}/${v.registro_id}`)}
+              onClick={() => navigate(`/clientes/${v.registro_id}`)}
             />
           ))}
         </Stack>
@@ -328,6 +327,20 @@ function Rosca({ data }: { data: { label: string; total: number }[] }) {
 }
 
 // ----------------------------------------------------------- Atividade (D)
+/** Rota de destino de um item da trilha de auditoria, por tipo de registro. */
+function atividadeDestino(entidade: string, id: string): string {
+  switch (entidade) {
+    case 'ocorrencia':
+      return `/ocorrencias/${id}/editar`;
+    case 'pendencia':
+      return `/pendencias/${id}/editar`;
+    case 'evento':
+      return `/eventos-futuros/${id}/editar`;
+    default:
+      return `/clientes/${id}`;
+  }
+}
+
 function AtividadeBlock({ data }: { data: Dashboard['atividade'] }) {
   const navigate = useNavigate();
   return (
@@ -369,9 +382,7 @@ function AtividadeBlock({ data }: { data: Dashboard['atividade'] }) {
               direction="row"
               spacing={1.25}
               alignItems="center"
-              onClick={() =>
-                navigate(`/${a.entidade === 'cliente' ? 'clientes' : 'cct'}/${a.entidade_id}`)
-              }
+              onClick={() => navigate(atividadeDestino(a.entidade, a.entidade_id))}
               sx={{ cursor: 'pointer', '&:hover .lbl': { color: 'primary.main' } }}
             >
               <Box
@@ -399,6 +410,136 @@ function AtividadeBlock({ data }: { data: Dashboard['atividade'] }) {
   );
 }
 
+// ------------------------------------------------ Empresas incompletas (E)
+function IncompletosBlock({ data }: { data: ClienteIncompleto[] }) {
+  const navigate = useNavigate();
+  return (
+    <SectionCard
+      title="Empresas com dados incompletos"
+      icon={<WarningAmberIcon sx={{ color: '#D97706' }} />}
+      action={
+        <Typography variant="caption" color="text.secondary">
+          {data.length} a completar
+        </Typography>
+      }
+    >
+      {data.length > 0 ? (
+        <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
+          {data.map((c) => (
+            <Stack
+              key={c.id}
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              onClick={() => navigate(`/informacoes-gerais/${c.id}/editar`)}
+              sx={{
+                py: 1.25,
+                px: 1,
+                borderRadius: 2,
+                cursor: 'pointer',
+                '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
+              }}
+            >
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+                  <Mono sx={{ color: 'text.secondary' }}>{c.codigo} </Mono>
+                  {c.nome}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Faltam: {c.faltantes.join(', ')}
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                label={`${c.faltantes.length} campo(s)`}
+                sx={{
+                  flexShrink: 0,
+                  fontWeight: 700,
+                  color: '#B45309',
+                  bgcolor: alpha('#F59E0B', 0.14),
+                  border: 'none',
+                }}
+              />
+            </Stack>
+          ))}
+        </Stack>
+      ) : (
+        <EmptyState message="Todos os cadastros estão completos." />
+      )}
+    </SectionCard>
+  );
+}
+
+// -------------------------------------------- Eventos futuros a lançar (F)
+function EventosBlock({ data }: { data: EventoProximo[] }) {
+  const navigate = useNavigate();
+  const textoMeses = (meses: number) => {
+    if (meses < 0) return `atrasado ${-meses} mês(es)`;
+    if (meses === 0) return 'este mês';
+    return `em ${meses} mês(es)`;
+  };
+  return (
+    <SectionCard
+      title="Eventos futuros a lançar"
+      icon={<EventNoteIcon color="primary" />}
+      action={
+        <Typography
+          variant="caption"
+          color="primary"
+          sx={{ cursor: 'pointer', fontWeight: 700 }}
+          onClick={() => navigate('/eventos-futuros')}
+        >
+          Ver tudo →
+        </Typography>
+      }
+    >
+      {data.length > 0 ? (
+        <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
+          {data.map((e) => (
+            <Stack
+              key={e.id}
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              onClick={() => navigate(`/eventos-futuros/${e.id}/editar`)}
+              sx={{
+                py: 1.25,
+                px: 1,
+                borderRadius: 2,
+                cursor: 'pointer',
+                '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
+              }}
+            >
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+                  {e.nome}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                  {e.descricao || e.colaborador || 'Lançamento'} · competência{' '}
+                  <Mono>{formatCompetencia(e.competencia)}</Mono>
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                label={textoMeses(e.meses)}
+                sx={{
+                  flexShrink: 0,
+                  fontWeight: 700,
+                  color: e.meses < 0 ? '#BE123C' : '#B45309',
+                  bgcolor: alpha(e.meses < 0 ? '#E11D48' : '#F59E0B', 0.14),
+                  border: 'none',
+                }}
+              />
+            </Stack>
+          ))}
+        </Stack>
+      ) : (
+        <EmptyState message="Nenhum evento próximo a lançar." />
+      )}
+    </SectionCard>
+  );
+}
+
 // -------------------------------------------------------------------- Página
 export function DashboardPage() {
   const { user } = useAuth();
@@ -419,7 +560,7 @@ export function DashboardPage() {
     );
   }
 
-  const { kpis, vencimentos, composicao, atividade } = data;
+  const { kpis, vencimentos, composicao, atividade, incompletos, eventos } = data;
 
   return (
     <Box>
@@ -446,20 +587,20 @@ export function DashboardPage() {
         </Grid>
         <Grid item xs={6} md={3}>
           <KpiCard
-            icon={<DescriptionIcon />}
-            value={kpis.convencoes_vigentes}
-            label="Convenções vigentes"
-            hint={`${kpis.convencoes_expiradas} expirada(s)`}
-            color="#0E9F6E"
+            icon={<WarningAmberIcon />}
+            value={incompletos.length}
+            label="Cadastros incompletos"
+            hint="empresas a completar"
+            color="#D97706"
           />
         </Grid>
         <Grid item xs={6} md={3}>
           <KpiCard
-            icon={<LinkOffIcon />}
-            value={kpis.clientes_sem_convencao}
-            label="Sem convenção vinculada"
-            hint="clientes a revisar"
-            color="#D97706"
+            icon={<EventNoteIcon />}
+            value={eventos.length}
+            label="Eventos a lançar"
+            hint="competência próxima"
+            color="#0E9F6E"
           />
         </Grid>
         <Grid item xs={6} md={3}>
@@ -484,6 +625,16 @@ export function DashboardPage() {
         </Grid>
       </Grid>
 
+      {/* E/F — Cadastros incompletos + eventos a lançar */}
+      <Grid container spacing={2.5} sx={{ mt: 0 }}>
+        <Grid item xs={12} md={7}>
+          <IncompletosBlock data={incompletos} />
+        </Grid>
+        <Grid item xs={12} md={5}>
+          <EventosBlock data={eventos} />
+        </Grid>
+      </Grid>
+
       {/* C — Composição */}
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2, mb: 1.5 }}>
         <InsightsIcon color="primary" />
@@ -493,11 +644,6 @@ export function DashboardPage() {
         <Grid item xs={12} md={6}>
           <SectionCard title="Clientes por responsável" icon={<GroupsIcon color="action" />}>
             <BarsHorizontais data={composicao.por_responsavel} />
-          </SectionCard>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SectionCard title="Top convenções por nº de clientes" icon={<DescriptionIcon color="action" />}>
-            <BarsHorizontais data={composicao.top_convencoes} />
           </SectionCard>
         </Grid>
         <Grid item xs={12} md={6}>

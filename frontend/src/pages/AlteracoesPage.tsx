@@ -1,6 +1,7 @@
-import DescriptionIcon from '@mui/icons-material/Description';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import GroupsIcon from '@mui/icons-material/Groups';
 import HistoryIcon from '@mui/icons-material/History';
+import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import {
@@ -20,7 +21,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listAlteracoes } from '../api/resources';
 import { EmptyState, Mono } from '../components/ui';
-import type { Alteracao, FieldChange } from '../types';
+import type { Alteracao, Entidade, FieldChange } from '../types';
 
 /** Formata um ISO timestamp em 'DD/MM/AAAA às HH:MM'. */
 function formatDateTime(iso: string): string {
@@ -32,10 +33,9 @@ function formatDateTime(iso: string): string {
   })}`;
 }
 
-/** Encurta valores muito longos para a célula "de → para". */
-function trunc(v: string | null, max = 80): string {
-  if (v === null || v === '') return '—';
-  return v.length > max ? `${v.slice(0, max)}…` : v;
+/** Valor completo do campo (vazio → '—'), preservando quebras de linha. */
+function valorCompleto(v: string | null): string {
+  return v === null || v === '' ? '—' : v;
 }
 
 function ChangeRow({ change }: { change: FieldChange }) {
@@ -50,15 +50,20 @@ function ChangeRow({ change }: { change: FieldChange }) {
           color: 'error.main',
           textDecoration: 'line-through',
           textDecorationColor: 'rgba(0,0,0,0.25)',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
         }}
       >
-        {trunc(change.de)}
+        {valorCompleto(change.de)}
       </Typography>
       <Box component="span" sx={{ color: 'text.disabled' }}>
         →
       </Box>
-      <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
-        {trunc(change.para)}
+      <Typography
+        variant="body2"
+        sx={{ color: 'success.main', fontWeight: 600, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+      >
+        {valorCompleto(change.para)}
       </Typography>
     </Box>
   );
@@ -66,12 +71,23 @@ function ChangeRow({ change }: { change: FieldChange }) {
 
 const ENTIDADE_CONFIG = {
   cliente: { label: 'cliente', artigo: 'o', icon: <GroupsIcon />, destino: (id: string) => `/clientes/${id}` },
-  convencao: { label: 'convenção', artigo: 'a', icon: <DescriptionIcon />, destino: (id: string) => `/cct/${id}` },
   ocorrencia: {
     label: 'ocorrência',
     artigo: 'a',
     icon: <ReportProblemOutlinedIcon />,
     destino: (id: string) => `/ocorrencias/${id}/editar`,
+  },
+  pendencia: {
+    label: 'pendência',
+    artigo: 'a',
+    icon: <PlaylistAddCheckIcon />,
+    destino: (id: string) => `/pendencias/${id}/editar`,
+  },
+  evento: {
+    label: 'evento futuro',
+    artigo: 'o',
+    icon: <EventNoteIcon />,
+    destino: (id: string) => `/eventos-futuros/${id}/editar`,
   },
 } as const;
 
@@ -135,7 +151,7 @@ function AlteracaoCard({ item }: { item: Alteracao }) {
 
 export function AlteracoesPage() {
   const [q, setQ] = useState('');
-  const [entidade, setEntidade] = useState<'' | 'cliente' | 'convencao' | 'ocorrencia'>('');
+  const [entidade, setEntidade] = useState<'' | Entidade>('');
 
   const { data, isFetching } = useQuery({
     queryKey: ['alteracoes', { q, entidade }],
@@ -185,7 +201,8 @@ export function AlteracoesPage() {
             <MenuItem value="">Todos</MenuItem>
             <MenuItem value="cliente">Clientes</MenuItem>
             <MenuItem value="ocorrencia">Ocorrências</MenuItem>
-            <MenuItem value="convencao">Convenções</MenuItem>
+            <MenuItem value="pendencia">Pendências</MenuItem>
+            <MenuItem value="evento">Eventos futuros</MenuItem>
           </TextField>
         </Stack>
       </Paper>

@@ -2,16 +2,19 @@ import { api } from './client';
 import type {
   Alteracao,
   Dashboard,
-  Cct,
-  CctListItem,
   Cliente,
   ClienteFicha,
   ClienteListItem,
   CredencialRevelada,
+  EventoFuturo,
   Filtros,
   Ocorrencia,
   OcorrenciaOpcoes,
+  Pendencia,
+  Relatorio,
+  RelatorioResumo,
   SessionUser,
+  StatusOpcoes,
 } from '../types';
 
 // ------------------------------------------------------------------ Dashboard
@@ -84,35 +87,9 @@ export async function revelarCredenciais(id: string) {
   return data;
 }
 
-// ------------------------------------------------------------------------ CCT
-export async function listCct() {
-  const { data } = await api.get<CctListItem[]>('/cct');
-  return data;
-}
-
-export async function fetchCct(id: string) {
-  const { data } = await api.get<Cct>(`/cct/${id}`);
-  return data;
-}
-
-export async function fetchClientesDaCct(id: string) {
-  const { data } = await api.get<ClienteListItem[]>(`/cct/${id}/clientes`);
-  return data;
-}
-
-export async function createCct(payload: Record<string, unknown>) {
-  const { data } = await api.post<Cct>('/cct', payload);
-  return data;
-}
-
-export async function updateCct(id: string, payload: Record<string, unknown>) {
-  const { data } = await api.put<Cct>(`/cct/${id}`, payload);
-  return data;
-}
-
 // ------------------------------------------------------------------ Alterações
 export interface AlteracaoQuery {
-  entidade?: 'cliente' | 'convencao' | 'ocorrencia';
+  entidade?: 'cliente' | 'ocorrencia' | 'pendencia' | 'evento';
   entidade_id?: string;
   q?: string;
 }
@@ -157,4 +134,88 @@ export async function updateOcorrencia(id: string, payload: Record<string, unkno
 
 export async function deleteOcorrencia(id: string) {
   await api.delete(`/ocorrencias/${id}`);
+}
+
+// ----------------------------------------------------------------- Pendências
+export interface PendenciaQuery {
+  q?: string;
+  cliente_id?: string;
+  situacao?: string;
+  solucao_id?: string;
+}
+
+export async function listPendencias(params: PendenciaQuery = {}) {
+  const { data } = await api.get<Pendencia[]>('/pendencias', { params });
+  return data;
+}
+
+export async function fetchPendenciaOpcoes() {
+  const { data } = await api.get<StatusOpcoes>('/pendencias/opcoes');
+  return data;
+}
+
+export async function fetchPendencia(id: string) {
+  const { data } = await api.get<Pendencia>(`/pendencias/${id}`);
+  return data;
+}
+
+export async function createPendencia(payload: Record<string, unknown>) {
+  const { data } = await api.post<Pendencia>('/pendencias', payload);
+  return data;
+}
+
+export async function updatePendencia(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<Pendencia>(`/pendencias/${id}`, payload);
+  return data;
+}
+
+export async function deletePendencia(id: string) {
+  await api.delete(`/pendencias/${id}`);
+}
+
+// ------------------------------------------------------------- Eventos futuros
+export interface EventoQuery {
+  q?: string;
+  cliente_id?: string;
+  situacao?: string;
+}
+
+export async function listEventos(params: EventoQuery = {}) {
+  const { data } = await api.get<EventoFuturo[]>('/eventos-futuros', { params });
+  return data;
+}
+
+export async function fetchEventoOpcoes() {
+  const { data } = await api.get<StatusOpcoes>('/eventos-futuros/opcoes');
+  return data;
+}
+
+export async function fetchEvento(id: string) {
+  const { data } = await api.get<EventoFuturo>(`/eventos-futuros/${id}`);
+  return data;
+}
+
+export async function createEvento(payload: Record<string, unknown>) {
+  const { data } = await api.post<EventoFuturo>('/eventos-futuros', payload);
+  return data;
+}
+
+export async function updateEvento(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<EventoFuturo>(`/eventos-futuros/${id}`, payload);
+  return data;
+}
+
+export async function deleteEvento(id: string) {
+  await api.delete(`/eventos-futuros/${id}`);
+}
+
+// ----------------------------------------------------------------- Relatórios
+export async function listRelatorios() {
+  const { data } = await api.get<RelatorioResumo[]>('/relatorios');
+  return data;
+}
+
+export async function fetchRelatorio(key: string) {
+  const { data } = await api.get<Relatorio>(`/relatorios/${key}`);
+  return data;
 }

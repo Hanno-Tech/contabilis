@@ -1,7 +1,7 @@
 # Contabilis — Gestão do Departamento Pessoal
 
 Aplicação web multiusuário que substitui as planilhas do Departamento Pessoal
-(cadastro de clientes e convenções coletivas — CCT), eliminando o conflito de
+(cadastro de clientes e sua ficha operacional), eliminando o conflito de
 edição concorrente e dando busca, estrutura e proteção às credenciais sensíveis.
 
 Baseado em [`analise-requisitos-dp.md`](./analise-requisitos-dp.md).
@@ -27,7 +27,7 @@ contabilis/
 | RNF-02 Segurança de credenciais | Senhas de portais são cifradas com **AES-256-GCM** em repouso e só retornam descriptografadas por endpoint dedicado de "revelar". |
 | RNF-03 Busca | Busca textual por nome, CNPJ e código + filtros por situação, responsável e regime. |
 | RNF-07 Dado em banco | PostgreSQL — sem arquivo compartilhado. |
-| RF-17 / RF-23 Vínculo Cliente↔CCT | Chave estrangeira `clientes.convencao_id`; a partir da CCT lista-se os clientes vinculados. |
+| Convenção coletiva | Registrada como texto livre na ficha do cliente (nome da convenção, situação e recolhimento de contribuição), sem cadastro separado. |
 
 ## Instalação automática no Windows (do zero, sem Node/Docker)
 
@@ -126,25 +126,43 @@ Login **mockado** (RF-02). Usuários definidos em `backend/src/modules/auth/user
 | GET | `/api/clientes/:id` | Ficha completa |
 | PUT | `/api/clientes/:id` | Atualiza (exige `version`) |
 | GET | `/api/clientes/:id/credenciais` | Revela credenciais descriptografadas |
-| GET | `/api/cct` | Lista convenções |
-| POST | `/api/cct` | Cria convenção |
-| GET | `/api/cct/:id` | Ficha completa (pisos + regras) |
-| PUT | `/api/cct/:id` | Atualiza (exige `version`) |
-| GET | `/api/cct/:id/clientes` | Clientes vinculados à convenção |
+| GET | `/api/ocorrencias` | Ocorrências por cliente (CRUD, filtros) |
+| GET/POST/PUT/DELETE | `/api/pendencias` | Pendências (data do cadastro automática, quem cadastrou/soluciona, situação) |
+| GET/POST/PUT/DELETE | `/api/eventos-futuros` | Eventos futuros a lançar (cliente, competência, colaborador, situação) |
+| GET | `/api/relatorios` | Catálogo dos relatórios disponíveis |
+| GET | `/api/relatorios/:key` | Dados de um relatório (`{ titulo, colunas, linhas }`) |
 | GET | `/api/alteracoes` | Trilha de auditoria com filtros (`?entidade=`, `?q=`, `?entidade_id=`) |
 
 ## Tela inicial (dashboard)
 
 A rota `/` abre a **Dashboards**: KPIs da carteira, **alertas de vencimento**
-(procurações RFB/DET-FGTS/e-Consignado, laudos SST e convenções a expirar —
+(procurações RFB/DET-FGTS/e-Consignado e laudos SST —
 vencidos + próximos 30/60/90 dias), **composição da carteira** (gráficos por
-responsável, regime, situação e top convenções, via Recharts) e um resumo da
+responsável, regime e situação, via Recharts) e um resumo da
 **atividade recente** da equipe. Tudo derivado dos dados já existentes,
-servido por `GET /api/dashboard`.
+servido por `GET /api/dashboard`. Inclui ainda **empresas com dados incompletos**
+(clique na linha vai direto completar o cadastro) e **eventos futuros a lançar**
+cuja competência está próxima ou já chegou.
+
+## Submenus do Setor Pessoal
+
+Além de Informações Gerais e Ocorrências, o Setor Pessoal reúne:
+
+- **Pendências** — serviços que surgem durante o período da folha. Cada pendência
+  grava automaticamente a data do dia do cadastro, quem cadastrou, quem vai
+  solucionar e a situação (Aberta · Desconsiderada · Resolvida).
+- **Eventos futuros** — lançamentos programados (ex.: alteração de salário no fim
+  do ano): cliente, competência de lançamento, colaborador, quem lançou e a
+  situação (A lançar · Lançado · Cancelado). Aparecem no dashboard quando a
+  competência se aproxima.
+- **Relatórios** — 7 relatórios (fechamento da folha, clientes por situação,
+  procurações vencidas, campos não preenchidos, clientes por regime, pendências
+  em aberto e eventos a lançar), cada um com **exportação para Excel (.xlsx)**.
 
 ## Trilha de alterações (auditoria)
 
-Toda criação e edição de **clientes** e **convenções** é registrada na tabela
+Toda criação e edição de **clientes**, **ocorrências**, **pendências** e
+**eventos futuros** é registrada na tabela
 `alteracoes`: quem fez, quando, e a lista campo-a-campo do que mudou (de → para).
 Senhas de portais nunca são gravadas em claro — registra-se apenas que as
 credenciais foram atualizadas. A aba **Alterações** no frontend exibe esse
