@@ -66,6 +66,8 @@ export function OcorrenciasListPage() {
   const [clienteId, setClienteId] = useState(searchParams.get('cliente') ?? '');
   const [situacao, setSituacao] = useState('');
   const [responsavelId, setResponsavelId] = useState('');
+  const [dataDe, setDataDe] = useState('');
+  const [dataAte, setDataAte] = useState('');
 
   const { data: opcoes } = useQuery({ queryKey: ['ocorrencia-opcoes'], queryFn: fetchOcorrenciaOpcoes });
   const { data: clientes } = useQuery({
@@ -74,13 +76,15 @@ export function OcorrenciasListPage() {
   });
 
   const { data: ocorrencias, isFetching } = useQuery({
-    queryKey: ['ocorrencias', { q, clienteId, situacao, responsavelId }],
+    queryKey: ['ocorrencias', { q, clienteId, situacao, responsavelId, dataDe, dataAte }],
     queryFn: () =>
       listOcorrencias({
         q: q || undefined,
         cliente_id: clienteId || undefined,
         situacao: situacao || undefined,
         responsavel_id: responsavelId || undefined,
+        data_de: dataDe || undefined,
+        data_ate: dataAte || undefined,
       }),
     placeholderData: keepPreviousData,
   });
@@ -142,6 +146,8 @@ export function OcorrenciasListPage() {
               </MenuItem>
             ))}
           </TextField>
+          <TextField label="Data de" type="date" value={dataDe} onChange={(e) => setDataDe(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
+          <TextField label="Data até" type="date" value={dataAte} onChange={(e) => setDataAte(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
         </Stack>
       </Paper>
 

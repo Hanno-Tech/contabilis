@@ -1,5 +1,4 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import {
   Alert,
@@ -18,7 +17,6 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
 import {
   createEvento,
-  deleteEvento,
   fetchEvento,
   fetchEventoOpcoes,
   listClientes,
@@ -54,7 +52,6 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const { data: opcoes } = useQuery({ queryKey: ['evento-opcoes'], queryFn: fetchEventoOpcoes });
   const { data: clientes } = useQuery({ queryKey: ['clientes', 'todos'], queryFn: () => listClientes({}) });
@@ -112,19 +109,6 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
       else setError(apiErrorMessage(err, 'Não foi possível salvar o evento.'));
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!window.confirm('Excluir este evento? Esta ação não pode ser desfeita.')) return;
-    setDeleting(true);
-    try {
-      await deleteEvento(id);
-      queryClient.invalidateQueries({ queryKey: ['eventos'] });
-      navigate('/eventos-futuros');
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Não foi possível excluir o evento.'));
-      setDeleting(false);
     }
   }
 
@@ -230,22 +214,13 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </Grid>
       </SectionCard>
 
-      <Stack direction="row" spacing={2} justifyContent="space-between">
-        <Box>
-          {isEdit && (
-            <Button color="error" startIcon={<DeleteIcon />} onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Excluindo...' : 'Excluir'}
-            </Button>
-          )}
-        </Box>
-        <Stack direction="row" spacing={2}>
-          <Button component={RouterLink} to="/eventos-futuros">
-            Cancelar
-          </Button>
-          <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
-            {saving ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </Stack>
+      <Stack direction="row" spacing={2} justifyContent="flex-end">
+        <Button component={RouterLink} to="/eventos-futuros">
+          Cancelar
+        </Button>
+        <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
+          {saving ? 'Salvando...' : 'Salvar'}
+        </Button>
       </Stack>
     </Box>
   );

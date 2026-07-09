@@ -11,6 +11,7 @@ export const ocorrenciaInputSchema = z.object({
   cliente_id: z.string().uuid('Cliente inválido'),
   data: dateStr,
   ocorrencia: z.string().trim().min(1, 'Descreva o que aconteceu'),
+  porque: text,
   resolucao: text,
   situacao: z.enum(SITUACOES_OCORRENCIA).default('Em análise'),
   responsavel_id: text,

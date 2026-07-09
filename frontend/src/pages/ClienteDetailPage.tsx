@@ -4,7 +4,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LockIcon from '@mui/icons-material/Lock';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import {
   Alert,
   Box,
@@ -21,9 +20,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
-import { fetchFicha, listOcorrencias, revelarCredenciais } from '../api/resources';
-import { EmptyState, ReadField, SectionCard, SituacaoChip, formatDate, formatMoney } from '../components/ui';
-import { OcorrenciaStatusChip } from './OcorrenciasListPage';
+import { fetchFicha, revelarCredenciais } from '../api/resources';
+import { ReadField, SectionCard, SituacaoChip, formatDate, formatMoney } from '../components/ui';
 import type { ClienteFolha, CredencialRevelada } from '../types';
 
 const TIPO_LABEL: Record<string, string> = {
@@ -279,9 +277,6 @@ export function ClienteDetailPage() {
           ))
         )}
       </SectionCard>
-
-      {/* 13. Ocorrências */}
-      <OcorrenciasResumo clienteId={id} />
     </Box>
   );
 }
@@ -354,45 +349,3 @@ function SecretField({ label, value, masked }: { label: string; value: string | 
   );
 }
 
-function OcorrenciasResumo({ clienteId }: { clienteId: string }) {
-  const navigate = useNavigate();
-  const { data } = useQuery({
-    queryKey: ['ocorrencias', { cliente_id: clienteId }],
-    queryFn: () => listOcorrencias({ cliente_id: clienteId }),
-  });
-  const ultimas = (data ?? []).slice(0, 3);
-
-  return (
-    <SectionCard
-      title="Ocorrências"
-      icon={<ReportProblemOutlinedIcon fontSize="small" color="primary" />}
-      action={
-        <Button size="small" onClick={() => navigate(`/ocorrencias?cliente=${clienteId}`)}>
-          Ver todas
-        </Button>
-      }
-    >
-      {ultimas.length === 0 ? (
-        <EmptyState message="Nenhuma ocorrência para este cliente." />
-      ) : (
-        <Stack divider={<Divider />} spacing={1.5}>
-          {ultimas.map((o) => (
-            <Box
-              key={o.id}
-              sx={{ cursor: 'pointer' }}
-              onClick={() => navigate(`/ocorrencias/${o.id}/editar`)}
-            >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.25 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {formatDate(o.data)}
-                </Typography>
-                <OcorrenciaStatusChip situacao={o.situacao} />
-              </Stack>
-              <Typography variant="body2">{o.ocorrencia}</Typography>
-            </Box>
-          ))}
-        </Stack>
-      )}
-    </SectionCard>
-  );
-}

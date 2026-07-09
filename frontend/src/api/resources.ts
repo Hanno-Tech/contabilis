@@ -13,6 +13,8 @@ import type {
   Pendencia,
   Relatorio,
   RelatorioResumo,
+  SenhaSetor,
+  SenhaSetorRevelada,
   SessionUser,
   StatusOpcoes,
 } from '../types';
@@ -105,6 +107,8 @@ export interface OcorrenciaQuery {
   cliente_id?: string;
   situacao?: string;
   responsavel_id?: string;
+  data_de?: string;
+  data_ate?: string;
 }
 
 export async function listOcorrencias(params: OcorrenciaQuery = {}) {
@@ -142,6 +146,8 @@ export interface PendenciaQuery {
   cliente_id?: string;
   situacao?: string;
   solucao_id?: string;
+  data_de?: string;
+  data_ate?: string;
 }
 
 export async function listPendencias(params: PendenciaQuery = {}) {
@@ -178,6 +184,8 @@ export interface EventoQuery {
   q?: string;
   cliente_id?: string;
   situacao?: string;
+  comp_de?: string;
+  comp_ate?: string;
 }
 
 export async function listEventos(params: EventoQuery = {}) {
@@ -207,6 +215,36 @@ export async function updateEvento(id: string, payload: Record<string, unknown>)
 
 export async function deleteEvento(id: string) {
   await api.delete(`/eventos-futuros/${id}`);
+}
+
+// ------------------------------------------------------------- Senhas do setor
+export async function listSenhasSetor(q?: string) {
+  const { data } = await api.get<SenhaSetor[]>('/senhas-setor', { params: q ? { q } : {} });
+  return data;
+}
+
+export async function fetchSenhaSetor(id: string) {
+  const { data } = await api.get<SenhaSetor>(`/senhas-setor/${id}`);
+  return data;
+}
+
+export async function createSenhaSetor(payload: Record<string, unknown>) {
+  const { data } = await api.post<SenhaSetor>('/senhas-setor', payload);
+  return data;
+}
+
+export async function updateSenhaSetor(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<SenhaSetor>(`/senhas-setor/${id}`, payload);
+  return data;
+}
+
+export async function deleteSenhaSetor(id: string) {
+  await api.delete(`/senhas-setor/${id}`);
+}
+
+export async function revelarSenhaSetor(id: string) {
+  const { data } = await api.get<SenhaSetorRevelada>(`/senhas-setor/${id}/senha`);
+  return data;
 }
 
 // ----------------------------------------------------------------- Relatórios

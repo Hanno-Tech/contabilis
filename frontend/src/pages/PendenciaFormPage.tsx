@@ -1,5 +1,4 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import {
   Alert,
@@ -18,7 +17,6 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
 import {
   createPendencia,
-  deletePendencia,
   fetchPendencia,
   fetchPendenciaOpcoes,
   listClientes,
@@ -49,7 +47,6 @@ export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const { data: opcoes } = useQuery({ queryKey: ['pendencia-opcoes'], queryFn: fetchPendenciaOpcoes });
   const { data: clientes } = useQuery({ queryKey: ['clientes', 'todos'], queryFn: () => listClientes({}) });
@@ -107,19 +104,6 @@ export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
       else setError(apiErrorMessage(err, 'Não foi possível salvar a pendência.'));
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!window.confirm('Excluir esta pendência? Esta ação não pode ser desfeita.')) return;
-    setDeleting(true);
-    try {
-      await deletePendencia(id);
-      queryClient.invalidateQueries({ queryKey: ['pendencias'] });
-      navigate('/pendencias');
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Não foi possível excluir a pendência.'));
-      setDeleting(false);
     }
   }
 
@@ -227,22 +211,13 @@ export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </Grid>
       </SectionCard>
 
-      <Stack direction="row" spacing={2} justifyContent="space-between">
-        <Box>
-          {isEdit && (
-            <Button color="error" startIcon={<DeleteIcon />} onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Excluindo...' : 'Excluir'}
-            </Button>
-          )}
-        </Box>
-        <Stack direction="row" spacing={2}>
-          <Button component={RouterLink} to="/pendencias">
-            Cancelar
-          </Button>
-          <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
-            {saving ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </Stack>
+      <Stack direction="row" spacing={2} justifyContent="flex-end">
+        <Button component={RouterLink} to="/pendencias">
+          Cancelar
+        </Button>
+        <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
+          {saving ? 'Salvando...' : 'Salvar'}
+        </Button>
       </Stack>
     </Box>
   );

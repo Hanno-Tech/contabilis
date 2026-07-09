@@ -6,6 +6,8 @@ export interface PendenciaFilters {
   cliente_id?: string;
   situacao?: string;
   solucao_id?: string;
+  data_de?: string;
+  data_ate?: string;
 }
 
 /** Colunas editáveis da pendência (a data e quem cadastrou não mudam na edição). */
@@ -52,6 +54,8 @@ export async function listPendencias(filters: PendenciaFilters) {
   if (filters.cliente_id) query = query.where('pendencias.cliente_id', '=', filters.cliente_id);
   if (filters.situacao) query = query.where('pendencias.situacao', '=', filters.situacao);
   if (filters.solucao_id) query = query.where('pendencias.usuario_solucao_id', '=', filters.solucao_id);
+  if (filters.data_de) query = query.where('pendencias.data', '>=', filters.data_de);
+  if (filters.data_ate) query = query.where('pendencias.data', '<=', filters.data_ate);
 
   return query
     .orderBy('pendencias.data', 'desc')

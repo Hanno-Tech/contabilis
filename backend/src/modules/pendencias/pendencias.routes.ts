@@ -30,13 +30,15 @@ pendenciasRouter.get(
 pendenciasRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { q, cliente_id, situacao, solucao_id } = req.query;
+    const { q, cliente_id, situacao, solucao_id, data_de, data_ate } = req.query;
     res.json(
       await repo.listPendencias({
         q: typeof q === 'string' ? q : undefined,
         cliente_id: typeof cliente_id === 'string' ? cliente_id : undefined,
         situacao: typeof situacao === 'string' ? situacao : undefined,
         solucao_id: typeof solucao_id === 'string' ? solucao_id : undefined,
+        data_de: typeof data_de === 'string' ? data_de : undefined,
+        data_ate: typeof data_ate === 'string' ? data_ate : undefined,
       }),
     );
   }),
