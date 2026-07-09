@@ -64,18 +64,22 @@ export function PendenciasListPage() {
   const [clienteId, setClienteId] = useState('');
   const [situacao, setSituacao] = useState('');
   const [solucaoId, setSolucaoId] = useState('');
+  const [dataDe, setDataDe] = useState('');
+  const [dataAte, setDataAte] = useState('');
 
   const { data: opcoes } = useQuery({ queryKey: ['pendencia-opcoes'], queryFn: fetchPendenciaOpcoes });
   const { data: clientes } = useQuery({ queryKey: ['clientes', 'todos'], queryFn: () => listClientes({}) });
 
   const { data: pendencias, isFetching } = useQuery({
-    queryKey: ['pendencias', { q, clienteId, situacao, solucaoId }],
+    queryKey: ['pendencias', { q, clienteId, situacao, solucaoId, dataDe, dataAte }],
     queryFn: () =>
       listPendencias({
         q: q || undefined,
         cliente_id: clienteId || undefined,
         situacao: situacao || undefined,
         solucao_id: solucaoId || undefined,
+        data_de: dataDe || undefined,
+        data_ate: dataAte || undefined,
       }),
     placeholderData: keepPreviousData,
   });
@@ -137,6 +141,8 @@ export function PendenciasListPage() {
               </MenuItem>
             ))}
           </TextField>
+          <TextField label="Data de" type="date" value={dataDe} onChange={(e) => setDataDe(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
+          <TextField label="Data até" type="date" value={dataAte} onChange={(e) => setDataAte(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
         </Stack>
       </Paper>
 

@@ -26,7 +26,7 @@ export interface ClienteIncompleto {
   id: string;
   codigo: number;
   nome: string;
-  faltantes: string[];
+  faltantes: number;
 }
 
 export interface EventoProximo {
@@ -212,6 +212,7 @@ export interface Ocorrencia {
   cliente_id: string;
   data: string;
   ocorrencia: string;
+  porque: string | null;
   resolucao: string | null;
   situacao: string;
   responsavel_id: string | null;
@@ -259,6 +260,22 @@ export interface EventoFuturo {
   updated_at: string;
   cliente_codigo: number;
   cliente_nome: string;
+}
+
+export interface SenhaSetor {
+  id: string;
+  nome: string;
+  link: string | null;
+  usuario: string | null;
+  observacoes: string | null;
+  tem_senha: boolean;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SenhaSetorRevelada {
+  senha: string | null;
 }
 
 export interface RelatorioResumo {

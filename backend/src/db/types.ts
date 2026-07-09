@@ -162,6 +162,7 @@ export interface OcorrenciasTable {
   cliente_id: string;
   data: DateOnly;
   ocorrencia: string;
+  porque: string | null;
   resolucao: string | null;
   situacao: string; // 'Resolvido' | 'Não resolvido' | 'Em análise'
   responsavel_id: string | null;
@@ -208,6 +209,22 @@ export interface EventosFuturosTable {
   updated_at: Generated<Timestamp>;
 }
 
+/**
+ * Cofre de senhas do setor (departamento pessoal), sem vínculo com cliente.
+ * A senha fica cifrada (AES-256-GCM) na coluna `senha_cipher`.
+ */
+export interface SenhasSetorTable {
+  id: Generated<string>;
+  nome: string;
+  link: string | null;
+  usuario: string | null;
+  senha_cipher: string | null;
+  observacoes: string | null;
+  version: Generated<number>;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface Database {
   clientes: ClientesTable;
   cliente_folha: ClienteFolhaTable;
@@ -217,4 +234,5 @@ export interface Database {
   ocorrencias: OcorrenciasTable;
   pendencias: PendenciasTable;
   eventos_futuros: EventosFuturosTable;
+  senhas_setor: SenhasSetorTable;
 }

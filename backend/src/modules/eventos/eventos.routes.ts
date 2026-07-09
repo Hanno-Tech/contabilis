@@ -27,12 +27,14 @@ eventosRouter.get(
 eventosRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { q, cliente_id, situacao } = req.query;
+    const { q, cliente_id, situacao, comp_de, comp_ate } = req.query;
     res.json(
       await repo.listEventos({
         q: typeof q === 'string' ? q : undefined,
         cliente_id: typeof cliente_id === 'string' ? cliente_id : undefined,
         situacao: typeof situacao === 'string' ? situacao : undefined,
+        comp_de: typeof comp_de === 'string' ? comp_de : undefined,
+        comp_ate: typeof comp_ate === 'string' ? comp_ate : undefined,
       }),
     );
   }),

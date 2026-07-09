@@ -6,6 +6,8 @@ export interface OcorrenciaFilters {
   cliente_id?: string;
   situacao?: string;
   responsavel_id?: string;
+  data_de?: string;
+  data_ate?: string;
 }
 
 /** Colunas escalares da ocorrência a partir da entrada validada. */
@@ -14,6 +16,7 @@ function mainColumns(input: OcorrenciaInput) {
     cliente_id: input.cliente_id,
     data: input.data,
     ocorrencia: input.ocorrencia,
+    porque: input.porque ?? null,
     resolucao: input.resolucao ?? null,
     situacao: input.situacao,
     responsavel_id: input.responsavel_id ?? null,
@@ -30,6 +33,7 @@ const withCliente = () =>
       'ocorrencias.cliente_id',
       'ocorrencias.data',
       'ocorrencias.ocorrencia',
+      'ocorrencias.porque',
       'ocorrencias.resolucao',
       'ocorrencias.situacao',
       'ocorrencias.responsavel_id',
@@ -49,6 +53,7 @@ export async function listOcorrencias(filters: OcorrenciaFilters) {
     query = query.where((eb) =>
       eb.or([
         eb('ocorrencias.ocorrencia', 'ilike', term),
+        eb('ocorrencias.porque', 'ilike', term),
         eb('ocorrencias.resolucao', 'ilike', term),
         eb('clientes.nome', 'ilike', term),
       ]),
@@ -58,6 +63,8 @@ export async function listOcorrencias(filters: OcorrenciaFilters) {
   if (filters.situacao) query = query.where('ocorrencias.situacao', '=', filters.situacao);
   if (filters.responsavel_id)
     query = query.where('ocorrencias.responsavel_id', '=', filters.responsavel_id);
+  if (filters.data_de) query = query.where('ocorrencias.data', '>=', filters.data_de);
+  if (filters.data_ate) query = query.where('ocorrencias.data', '<=', filters.data_ate);
 
   return query.orderBy('ocorrencias.data', 'desc').orderBy('ocorrencias.created_at', 'desc').execute();
 }

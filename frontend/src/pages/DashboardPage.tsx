@@ -415,7 +415,7 @@ function IncompletosBlock({ data }: { data: ClienteIncompleto[] }) {
   const navigate = useNavigate();
   return (
     <SectionCard
-      title="Empresas com dados incompletos"
+      title="Empresas com Visão geral incompleta"
       icon={<WarningAmberIcon sx={{ color: '#D97706' }} />}
       action={
         <Typography variant="caption" color="text.secondary">
@@ -431,7 +431,7 @@ function IncompletosBlock({ data }: { data: ClienteIncompleto[] }) {
               direction="row"
               spacing={1.5}
               alignItems="center"
-              onClick={() => navigate(`/informacoes-gerais/${c.id}/editar`)}
+              onClick={() => navigate(`/clientes/${c.id}`)}
               sx={{
                 py: 1.25,
                 px: 1,
@@ -446,12 +446,12 @@ function IncompletosBlock({ data }: { data: ClienteIncompleto[] }) {
                   {c.nome}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Faltam: {c.faltantes.join(', ')}
+                  Ficha incompleta
                 </Typography>
               </Box>
               <Chip
                 size="small"
-                label={`${c.faltantes.length} campo(s)`}
+                label={`${c.faltantes} campo(s)`}
                 sx={{
                   flexShrink: 0,
                   fontWeight: 700,

@@ -5,6 +5,8 @@ export interface EventoFilters {
   q?: string;
   cliente_id?: string;
   situacao?: string;
+  comp_de?: string; // competência inicial 'AAAA-MM'
+  comp_ate?: string; // competência final 'AAAA-MM'
 }
 
 /** 'AAAA-MM' -> '1º dia do mês' para a coluna date. */
@@ -56,6 +58,9 @@ export async function listEventos(filters: EventoFilters) {
   }
   if (filters.cliente_id) query = query.where('eventos_futuros.cliente_id', '=', filters.cliente_id);
   if (filters.situacao) query = query.where('eventos_futuros.situacao', '=', filters.situacao);
+  // Competência é o 1º dia do mês, então basta comparar contra o 1º dia dos limites.
+  if (filters.comp_de) query = query.where('eventos_futuros.competencia', '>=', `${filters.comp_de}-01`);
+  if (filters.comp_ate) query = query.where('eventos_futuros.competencia', '<=', `${filters.comp_ate}-01`);
 
   return query
     .orderBy('eventos_futuros.competencia', 'asc')

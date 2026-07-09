@@ -27,13 +27,15 @@ ocorrenciasRouter.get(
 ocorrenciasRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { q, cliente_id, situacao, responsavel_id } = req.query;
+    const { q, cliente_id, situacao, responsavel_id, data_de, data_ate } = req.query;
     res.json(
       await repo.listOcorrencias({
         q: typeof q === 'string' ? q : undefined,
         cliente_id: typeof cliente_id === 'string' ? cliente_id : undefined,
         situacao: typeof situacao === 'string' ? situacao : undefined,
         responsavel_id: typeof responsavel_id === 'string' ? responsavel_id : undefined,
+        data_de: typeof data_de === 'string' ? data_de : undefined,
+        data_ate: typeof data_ate === 'string' ? data_ate : undefined,
       }),
     );
   }),

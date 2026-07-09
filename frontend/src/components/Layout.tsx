@@ -8,6 +8,7 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeIcon from '@mui/icons-material/Badge';
+import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -55,6 +56,7 @@ const navEntries: NavEntry[] = [
       { to: '/ocorrencias', label: 'Ocorrências', icon: <ReportProblemOutlinedIcon fontSize="small" /> },
       { to: '/pendencias', label: 'Pendências', icon: <PlaylistAddCheckIcon fontSize="small" /> },
       { to: '/eventos-futuros', label: 'Eventos futuros', icon: <EventNoteIcon fontSize="small" /> },
+      { to: '/senhas-setor', label: 'Senhas do setor', icon: <VpnKeyOutlinedIcon fontSize="small" /> },
       { to: '/relatorios', label: 'Relatórios', icon: <AssessmentOutlinedIcon fontSize="small" /> },
       { to: '/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
     ],

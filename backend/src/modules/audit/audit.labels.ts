@@ -74,8 +74,9 @@ export const CLIENTE_FOLHA_LABELS: Record<string, string> = {
 export const OCORRENCIA_LABELS: Record<string, string> = {
   cliente_nome: 'Cliente',
   data: 'Data',
-  ocorrencia: 'Ocorrência',
-  resolucao: 'Resolução / observação',
+  ocorrencia: 'O que aconteceu',
+  porque: 'Por que aconteceu',
+  resolucao: 'Medida adotada',
   situacao: 'Situação',
   responsavel_nome: 'Responsável',
 };

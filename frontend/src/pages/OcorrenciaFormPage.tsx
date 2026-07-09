@@ -1,5 +1,4 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import {
   Alert,
@@ -18,7 +17,6 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
 import {
   createOcorrencia,
-  deleteOcorrencia,
   fetchOcorrencia,
   fetchOcorrenciaOpcoes,
   listClientes,
@@ -34,6 +32,7 @@ interface FormState {
   cliente_id: string;
   data: string;
   ocorrencia: string;
+  porque: string;
   resolucao: string;
   situacao: string;
   responsavel_id: string;
@@ -50,6 +49,7 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
     cliente_id: '',
     data: today(),
     ocorrencia: '',
+    porque: '',
     resolucao: '',
     situacao: 'Em análise',
     responsavel_id: '',
@@ -58,7 +58,6 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const { data: opcoes } = useQuery({ queryKey: ['ocorrencia-opcoes'], queryFn: fetchOcorrenciaOpcoes });
   const { data: clientes } = useQuery({
@@ -83,6 +82,7 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
       cliente_id: ocorrencia.cliente_id,
       data: ocorrencia.data ?? today(),
       ocorrencia: ocorrencia.ocorrencia ?? '',
+      porque: ocorrencia.porque ?? '',
       resolucao: ocorrencia.resolucao ?? '',
       situacao: ocorrencia.situacao ?? 'Em análise',
       responsavel_id: ocorrencia.responsavel_id ?? '',
@@ -115,6 +115,7 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
       cliente_id: form.cliente_id,
       data: form.data,
       ocorrencia: form.ocorrencia.trim(),
+      porque: strOrNull(form.porque),
       resolucao: strOrNull(form.resolucao),
       situacao: form.situacao,
       responsavel_id: responsavel?.id ?? null,
@@ -132,19 +133,6 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
       else setError(apiErrorMessage(err, 'Não foi possível salvar a ocorrência.'));
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!window.confirm('Excluir esta ocorrência? Esta ação não pode ser desfeita.')) return;
-    setDeleting(true);
-    try {
-      await deleteOcorrencia(id);
-      queryClient.invalidateQueries({ queryKey: ['ocorrencias'] });
-      navigate('/ocorrencias');
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Não foi possível excluir a ocorrência.'));
-      setDeleting(false);
     }
   }
 
@@ -221,14 +209,26 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
           </Grid>
           <Grid item xs={12}>
             <TextField
-              label="Resolução ou observação"
+              label="Por que aconteceu"
+              value={form.porque}
+              onChange={(e) => setField('porque', e.target.value)}
+              fullWidth
+              size="small"
+              multiline
+              minRows={3}
+              helperText="A causa ou motivo da ocorrência."
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              label="Medida adotada"
               value={form.resolucao}
               onChange={(e) => setField('resolucao', e.target.value)}
               fullWidth
               size="small"
               multiline
               minRows={3}
-              helperText="O que foi decidido ou registrado."
+              helperText="O que foi feito para resolver ou tratar a ocorrência."
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -267,22 +267,13 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </Grid>
       </SectionCard>
 
-      <Stack direction="row" spacing={2} justifyContent="space-between">
-        <Box>
-          {isEdit && (
-            <Button color="error" startIcon={<DeleteIcon />} onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Excluindo...' : 'Excluir'}
-            </Button>
-          )}
-        </Box>
-        <Stack direction="row" spacing={2}>
-          <Button component={RouterLink} to="/ocorrencias">
-            Cancelar
-          </Button>
-          <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
-            {saving ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </Stack>
+      <Stack direction="row" spacing={2} justifyContent="flex-end">
+        <Button component={RouterLink} to="/ocorrencias">
+          Cancelar
+        </Button>
+        <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>
+          {saving ? 'Salvando...' : 'Salvar'}
+        </Button>
       </Stack>
     </Box>
   );

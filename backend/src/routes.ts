@@ -7,6 +7,7 @@ import { ocorrenciasRouter } from './modules/ocorrencias/ocorrencias.routes.js';
 import { pendenciasRouter } from './modules/pendencias/pendencias.routes.js';
 import { eventosRouter } from './modules/eventos/eventos.routes.js';
 import { relatoriosRouter } from './modules/relatorios/relatorios.routes.js';
+import { senhasSetorRouter } from './modules/senhas-setor/senhas-setor.routes.js';
 
 export const apiRouter = Router();
 
@@ -19,3 +20,4 @@ apiRouter.use('/ocorrencias', ocorrenciasRouter);
 apiRouter.use('/pendencias', pendenciasRouter);
 apiRouter.use('/eventos-futuros', eventosRouter);
 apiRouter.use('/relatorios', relatoriosRouter);
+apiRouter.use('/senhas-setor', senhasSetorRouter);

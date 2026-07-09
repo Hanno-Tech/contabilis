@@ -15,6 +15,8 @@ import { PendenciaFormPage } from './pages/PendenciaFormPage';
 import { EventosListPage } from './pages/EventosListPage';
 import { EventoFormPage } from './pages/EventoFormPage';
 import { RelatoriosPage } from './pages/RelatoriosPage';
+import { SenhasSetorListPage } from './pages/SenhasSetorListPage';
+import { SenhaSetorFormPage } from './pages/SenhaSetorFormPage';
 import { DashboardPage } from './pages/DashboardPage';
 
 export default function App() {
@@ -41,6 +43,9 @@ export default function App() {
           <Route path="/eventos-futuros/novo" element={<EventoFormPage mode="create" />} />
           <Route path="/eventos-futuros/:id/editar" element={<EventoFormPage mode="edit" />} />
           <Route path="/relatorios" element={<RelatoriosPage />} />
+          <Route path="/senhas-setor" element={<SenhasSetorListPage />} />
+          <Route path="/senhas-setor/nova" element={<SenhaSetorFormPage mode="create" />} />
+          <Route path="/senhas-setor/:id/editar" element={<SenhaSetorFormPage mode="edit" />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

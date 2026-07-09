@@ -1,7 +1,6 @@
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
-  Chip,
   CircularProgress,
   InputAdornment,
   MenuItem,
@@ -110,7 +109,6 @@ export function ClientesListPage() {
                 <TableCell>CNPJ</TableCell>
                 <TableCell>Situação</TableCell>
                 <TableCell>Responsável</TableCell>
-                <TableCell>Convenção</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -130,13 +128,6 @@ export function ClientesListPage() {
                     <SituacaoChip situacao={c.situacao} />
                   </TableCell>
                   <TableCell>{c.responsavel ?? '—'}</TableCell>
-                  <TableCell>
-                    {c.convencao_nome ? (
-                      <Chip size="small" label={c.convencao_nome} variant="outlined" />
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

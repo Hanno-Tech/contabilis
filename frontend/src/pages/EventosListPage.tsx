@@ -58,17 +58,21 @@ export function EventosListPage() {
   const [q, setQ] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [situacao, setSituacao] = useState('');
+  const [compDe, setCompDe] = useState('');
+  const [compAte, setCompAte] = useState('');
 
   const { data: opcoes } = useQuery({ queryKey: ['evento-opcoes'], queryFn: fetchEventoOpcoes });
   const { data: clientes } = useQuery({ queryKey: ['clientes', 'todos'], queryFn: () => listClientes({}) });
 
   const { data: eventos, isFetching } = useQuery({
-    queryKey: ['eventos', { q, clienteId, situacao }],
+    queryKey: ['eventos', { q, clienteId, situacao, compDe, compAte }],
     queryFn: () =>
       listEventos({
         q: q || undefined,
         cliente_id: clienteId || undefined,
         situacao: situacao || undefined,
+        comp_de: compDe || undefined,
+        comp_ate: compAte || undefined,
       }),
     placeholderData: keepPreviousData,
   });
@@ -122,6 +126,8 @@ export function EventosListPage() {
               </MenuItem>
             ))}
           </TextField>
+          <TextField label="Competência de" type="month" value={compDe} onChange={(e) => setCompDe(e.target.value)} size="small" sx={{ minWidth: 160 }} InputLabelProps={{ shrink: true }} />
+          <TextField label="Competência até" type="month" value={compAte} onChange={(e) => setCompAte(e.target.value)} size="small" sx={{ minWidth: 160 }} InputLabelProps={{ shrink: true }} />
         </Stack>
       </Paper>
 
