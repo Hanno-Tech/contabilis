@@ -5,8 +5,8 @@ Vite) e a API (Express como função serverless) no mesmo domínio, com o banco
 PostgreSQL no **Neon**.
 
 ```
-https://<projeto>.vercel.app/          → frontend/dist (arquivos estáticos)
-https://<projeto>.vercel.app/api/...   → api/[...path].ts → app Express
+https://contabilis.vercel.app/          → frontend/dist (arquivos estáticos)
+https://contabilis.vercel.app/api/...   → api/[...path].ts → app Express
                                           └── Neon (PostgreSQL)
 ```
 
@@ -20,8 +20,27 @@ faz proxy de `/api` para o backend local).
 |---|---|
 | `package.json` (raiz) | Workspaces npm — um `npm install` cobre backend e frontend, e a função serverless enxerga as dependências do backend. |
 | `api/[...path].ts` | Rota catch-all: entrega tudo que chega em `/api/...` ao mesmo `createApp()` usado em desenvolvimento. |
-| `vercel.json` | Build do frontend, saída estática, fallback de SPA e cabeçalhos de segurança. |
+| `vercel.json` | Build do frontend, saída estática, roteamento e cabeçalhos de segurança. |
 | `backend/src/db/index.ts` | Pool enxuto (3 conexões por instância) e TLS obrigatório fora de localhost. |
+
+### Duas armadilhas já resolvidas — não desfaça
+
+**1. O rewrite `/api/(.*)` é obrigatório.** O roteamento automático do Vercel
+para a pasta `api/` interpreta `[...path]` como um parâmetro comum e gera
+`^/api/([^/]+)$` — **um único segmento**. Sem o rewrite explícito, `/api/health`
+funciona mas `/api/auth/login` cai num 404 da plataforma, antes de chegar ao
+Express. Para conferir a tabela de rotas gerada sem fazer deploy:
+
+```bash
+npx vercel build
+node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/output/config.json')).routes)"
+```
+
+**2. Não defina `NODE_ENV` como variável de ambiente no Vercel.** O Vercel já
+define `NODE_ENV=production` em runtime. Declará-la manualmente faz o
+`npm install` do build pular as devDependencies, e o build quebra com exit 127
+(`vite`/`tsc` não encontrados). O `installCommand` usa `--include=dev` como
+proteção extra.
 
 ---
 
@@ -114,18 +133,21 @@ node -e "console.log('CREDENTIALS_ENCRYPTION_KEY=' + require('crypto').randomByt
    | `DATABASE_URL` | connection string **pooled** do Neon (`...-pooler...?sslmode=require`) |
    | `JWT_SECRET` | o valor gerado acima |
    | `CREDENTIALS_ENCRYPTION_KEY` | o valor gerado acima |
-   | `NODE_ENV` | `production` |
 
-   Não defina `VITE_API_URL` — vazio faz o app usar `/api` na mesma origem, que
-   é o que queremos. `CORS_ORIGIN` também é dispensável no deploy único.
+   São só essas três. Não defina `VITE_API_URL` — vazio faz o app usar `/api` na
+   mesma origem, que é o que queremos. `CORS_ORIGIN` é dispensável no deploy
+   único. E **não defina `NODE_ENV`** (veja as armadilhas acima).
 
 4. **Deploy**.
+
+O projeto está conectado ao GitHub: todo push em `main` dispara um deploy de
+produção. Pelo CLI, o equivalente é `npx vercel deploy --prod`.
 
 ### Conferir se subiu
 
 ```bash
-curl https://<projeto>.vercel.app/api/health          # {"status":"ok"}
-curl -X POST https://<projeto>.vercel.app/api/auth/login \
+curl https://contabilis.vercel.app/api/health          # {"status":"ok"}
+curl -X POST https://contabilis.vercel.app/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"usuario","password":"senha"}'
 ```
