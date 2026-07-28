@@ -143,6 +143,49 @@ Desativar preserva o histórico de quem cadastrou o quê — por isso não se ap
 o registro. Cada pessoa troca a própria senha pelo ícone de cadeado no rodapé
 do menu lateral.
 
+## Carga da carteira de clientes
+
+Os clientes vêm da planilha do setor (`FRPes-001 Visão Geral (Setor Pessoal)`),
+importada por script. A planilha **não é versionada** — traz senhas de portais
+em texto puro.
+
+```bash
+cd backend
+npm run import:clientes -- --file "../FRPes-001 ... .xlsx" --dry-run   # só relata
+npm run import:clientes -- --file "../FRPes-001 ... .xlsx"             # grava
+```
+
+Rode sempre o `--dry-run` antes: ele produz o mesmo relatório da importação
+real sem tocar no banco.
+
+O importador **limpa a tabela de clientes e recarrega** tudo da planilha. Como
+as demais tabelas apontam para `clientes` com `ON DELETE CASCADE`, ocorrências,
+pendências e eventos futuros cairiam junto — por isso o script se recusa a rodar
+quando existem esses registros, e só prossegue com `--force`.
+
+Decisões de mapeamento (combinadas com o setor):
+
+| Situação na planilha | O que o importador faz |
+|---|---|
+| Linha sem `CÓDIGO DA EMPRESA` válido (em branco ou `xx`) | Não importa; lista no relatório para cadastro manual |
+| Código repetido | Vale a última linha; o relatório aponta quais foram |
+| Texto em coluna de data (`Sem Procuração`, `Não se aplica`, `EXPIRADA`) | Grava vazio; o relatório conta cada valor descartado |
+| `SALÁRIO DE CONTRIBUIÇÃO` textual (`Um salário mínimo vigente`) | Não importa — a coluna é numérica no banco; relatado |
+| `SENHA` / `USUÁRIO` preenchidos | Vão para o cofre de credenciais, cifrados (AES-256-GCM) |
+
+> O cabeçalho é conferido antes de qualquer gravação: se a planilha mudar de
+> formato, o script aborta apontando a coluna divergente em vez de importar
+> dado trocado.
+
+### Campos que a planilha não cobre
+
+A ficha do sistema tem 16 campos que **não existem** como coluna na planilha
+(procurações DET e FGTS separadas, prazo de contrato de experiência,
+lançamentos fixos, particularidades, termo de ciência SST, data de vencimento
+do laudo, entre outros). Eles ficam vazios após a importação e precisam ser
+preenchidos pela equipe no próprio sistema — é por isso que, logo após a carga,
+o painel **"empresas com dados incompletos"** acusa toda a carteira.
+
 ## Estrutura da API
 
 | Método | Rota | Descrição |

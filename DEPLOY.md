@@ -60,7 +60,28 @@ sua no primeiro acesso, pelo ícone de cadeado no rodapé do menu lateral.
 
 > **Não rode `npm run seed`** contra o Neon: ele carrega os dois clientes de
 > exemplo das planilhas de demonstração. Os dados reais entram pelo importador
-> da planilha de clientes.
+> da planilha, abaixo.
+
+### Importar a carteira de clientes
+
+```bash
+cd backend
+# 1) sempre simule primeiro — mesmo relatório, sem gravar
+DATABASE_URL='postgresql://...neon.tech/contabilis?sslmode=require' \
+  npm run import:clientes -- --file "../FRPes-001 ... .xlsx" --dry-run
+
+# 2) importe
+DATABASE_URL='postgresql://...neon.tech/contabilis?sslmode=require' \
+  npm run import:clientes -- --file "../FRPes-001 ... .xlsx"
+```
+
+Leia o relatório final: ele lista as linhas não importadas (sem código válido),
+os códigos repetidos e os valores descartados por não caberem no tipo da coluna.
+Detalhes do mapeamento no [README](./README.md#carga-da-carteira-de-clientes).
+
+> A planilha contém as senhas dos portais dos clientes em texto puro. Ela é
+> ignorada pelo git (`.gitignore`) e não deve ser enviada para o servidor —
+> a importação roda da sua máquina, apontando para o Neon.
 
 ---
 
