@@ -25,7 +25,9 @@ Em produção o app e a API vivem **no mesmo domínio**, então o frontend chama
 `/api` em caminho relativo. Em desenvolvimento o Vite faz proxy de `/api` para o
 backend local — o comportamento é o mesmo nos dois ambientes e não há CORS.
 
-Para subir em servidor, veja **[DEPLOY.md](./DEPLOY.md)** (Vercel + Neon).
+Em produção: **https://contabilis.vercel.app** — Vercel (app + API) e Neon
+(PostgreSQL). Todo push em `main` faz deploy. Detalhes em
+**[DEPLOY.md](./DEPLOY.md)**.
 
 ### Decisões de projeto que atendem os requisitos
 
