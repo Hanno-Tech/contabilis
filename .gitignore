@@ -2,8 +2,10 @@ node_modules/
 dist/
 build/
 coverage/
+# Qualquer .env fica de fora; só o .env.example é versionado.
 .env
-.env.local
+.env.*
+!.env.example
 *.log
 .DS_Store
 .vite/
