@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, Conflict, NotFound } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { validateBody } from '../../middleware/validate.js';
-import { listSelectableUsers } from '../auth/users.js';
+import { listSelectableUsers } from '../auth/usuarios.repository.js';
 import {
   eventoInputSchema,
   eventoUpdateSchema,
@@ -19,7 +19,7 @@ eventosRouter.use(requireAuth);
 eventosRouter.get(
   '/opcoes',
   asyncHandler(async (_req, res) => {
-    res.json({ usuarios: listSelectableUsers(), situacoes: [...SITUACOES_EVENTO] });
+    res.json({ usuarios: await listSelectableUsers(), situacoes: [...SITUACOES_EVENTO] });
   }),
 );
 

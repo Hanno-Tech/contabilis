@@ -22,7 +22,7 @@ const body = '"Exo 2", sans-serif';
 export function LoginPage() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('gisele');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -153,6 +153,7 @@ export function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 autoFocus
                 fullWidth
+                autoComplete="username"
                 sx={inputSx}
               />
               <TextField
@@ -161,6 +162,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 fullWidth
+                autoComplete="current-password"
                 sx={inputSx}
               />
               <Button
@@ -181,7 +183,7 @@ export function LoginPage() {
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
               <Typography variant="caption" align="center" sx={{ fontFamily: body, color: '#7A6E62' }}>
-                Acesso de demonstração: <strong>gisele</strong> / <strong>contabilis</strong>
+                Esqueceu a senha? Fale com o responsável pelo sistema.
               </Typography>
             </Stack>
           </form>

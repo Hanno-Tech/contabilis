@@ -2,8 +2,20 @@ node_modules/
 dist/
 build/
 coverage/
+# Qualquer .env fica de fora; só o .env.example é versionado.
 .env
-.env.local
+.env.*
+!.env.example
 *.log
 .DS_Store
 .vite/
+.vercel/
+
+# Lista real de usuários do seeder — contém nomes e, às vezes, senhas.
+# O modelo versionado é backend/usuarios.example.json.
+usuarios.json
+
+# Planilha real do setor: traz a carteira de clientes e as SENHAS dos portais
+# em texto puro. Nunca versionar — é lida pontualmente pelo import:clientes.
+FRPes-*.xlsx
+*Visão Geral (Setor Pessoal)*.xlsx

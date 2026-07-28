@@ -1,0 +1,25 @@
+{
+  "name": "contabilis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gestão do Departamento Pessoal — API + SPA",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace backend",
+    "dev:app": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "typecheck": "npm run typecheck --workspace backend && npm run typecheck --workspace frontend",
+    "db:migrate": "npm run db:migrate --workspace backend",
+    "db:reset": "npm run db:reset --workspace backend",
+    "db:refresh": "npm run db:refresh --workspace backend",
+    "seed": "npm run seed --workspace backend",
+    "seed:usuarios": "npm run seed:usuarios --workspace backend"
+  }
+}

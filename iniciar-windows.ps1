@@ -104,11 +104,9 @@ Depois feche e reabra o terminal e rode o iniciar-windows.bat de novo.
 '@
 }
 Write-Ok "Node.js OK ($nodeVer)."
-if (-not (Test-Path (Join-Path $BackendDir 'node_modules'))) {
-    Write-Warn 'backend/node_modules ausente -- rode setup-windows.bat (ou npm install) antes.'
-}
-if (-not (Test-Path (Join-Path $FrontendDir 'node_modules'))) {
-    Write-Warn 'frontend/node_modules ausente -- rode setup-windows.bat (ou npm install) antes.'
+# Workspaces npm: as dependencias ficam em node_modules na raiz do projeto.
+if (-not (Test-Path (Join-Path $ProjectDir 'node_modules'))) {
+    Write-Warn 'node_modules ausente -- rode setup-windows.bat (ou npm install na raiz) antes.'
 }
 
 # ----------------------------------------------------------------------------

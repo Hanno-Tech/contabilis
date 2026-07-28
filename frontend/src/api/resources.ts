@@ -39,6 +39,14 @@ export async function fetchMe() {
   return data.user;
 }
 
+export async function trocarSenha(senha_atual: string, nova_senha: string) {
+  const { data } = await api.post<{ ok: true }>('/auth/trocar-senha', {
+    senha_atual,
+    nova_senha,
+  });
+  return data;
+}
+
 // ------------------------------------------------------------------- Clientes
 export interface ClienteQuery {
   q?: string;

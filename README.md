@@ -8,16 +8,24 @@ Baseado em [`analise-requisitos-dp.md`](./analise-requisitos-dp.md).
 
 ## Arquitetura
 
-Monorepo com **backend** e **frontend** totalmente separados, comunicando-se por
-uma API REST.
+Monorepo (workspaces npm) com **backend** e **frontend** separados, comunicando-se
+por uma API REST em `/api`.
 
 ```
 contabilis/
 ├── backend/    API REST  — Node + TypeScript + Express + PostgreSQL
-│               Query builder tipado: Kysely | Migrations: node-pg-migrate
+│               Query builder tipado: Kysely | Migrations: runner próprio
 ├── frontend/   SPA       — React + TypeScript + Vite + Material UI (MUI)
-└── docker-compose.yml    PostgreSQL 16
+├── api/        Ponto de entrada da API como função serverless no Vercel
+├── vercel.json Configuração do deploy (app + API no mesmo domínio)
+└── docker-compose.yml    PostgreSQL 16 para desenvolvimento
 ```
+
+Em produção o app e a API vivem **no mesmo domínio**, então o frontend chama
+`/api` em caminho relativo. Em desenvolvimento o Vite faz proxy de `/api` para o
+backend local — o comportamento é o mesmo nos dois ambientes e não há CORS.
+
+Para subir em servidor, veja **[DEPLOY.md](./DEPLOY.md)** (Vercel + Neon).
 
 ### Decisões de projeto que atendem os requisitos
 
@@ -27,6 +35,8 @@ contabilis/
 | RNF-02 Segurança de credenciais | Senhas de portais são cifradas com **AES-256-GCM** em repouso e só retornam descriptografadas por endpoint dedicado de "revelar". |
 | RNF-03 Busca | Busca textual por nome, CNPJ e código + filtros por situação, responsável e regime. |
 | RNF-07 Dado em banco | PostgreSQL — sem arquivo compartilhado. |
+| Autenticação | Usuários na tabela `usuarios` com senha em **bcrypt** (12 rounds); JWT de 8h; login limitado a 10 tentativas por 15 min; usuário desativado perde o acesso na hora, mesmo com token válido. |
+| Segredos | `JWT_SECRET` e `CREDENTIALS_ENCRYPTION_KEY` são **obrigatórios em produção** — a API se recusa a subir com os valores de exemplo do repositório. |
 | Convenção coletiva | Registrada como texto livre na ficha do cliente (nome da convenção, situação e recolhimento de contribuição), sem cadastro separado. |
 
 ## Instalação automática no Windows (do zero, sem Node/Docker)
@@ -75,51 +85,114 @@ Para remover só o app e manter os programas: adicione `-KeepPackages`.
 
 ## Subir o ambiente
 
-### 1. Banco de dados
-
 ```bash
+# 1. Dependências — um install na raiz cobre backend e frontend (workspaces)
+npm install
+
+# 2. Configuração
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# 3. Banco de dados
 docker compose up -d
-```
+npm run db:migrate            # cria as tabelas
+npm run seed                  # dados das planilhas de exemplo (opcional)
+npm run seed:usuarios         # cria os usuários — veja "Acesso e usuários"
 
-### 2. Backend
-
-```bash
-cd backend
-cp .env.example .env          # ajuste os segredos se quiser
-npm install
-npm run migrate up            # cria as tabelas (node-pg-migrate)
-npm run seed                  # carrega os dados das planilhas de exemplo
-npm run dev                   # API em http://localhost:3333
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-cp .env.example .env
-npm install
-npm run dev                   # app em http://contabilis.local (porta 80)
+# 4. Aplicação (em dois terminais)
+npm run dev:api               # API em http://localhost:3333
+npm run dev:app               # app em http://contabilis.local (porta 80)
 ```
 
 > Por padrão o Vite serve na **porta 80** para o alias `http://contabilis.local`
 > funcionar sem `:porta`. Em desenvolvimento avulso (sem alias / sem admin),
-> rode em outra porta: `FRONTEND_PORT=5173 npm run dev` → `http://localhost:5173`.
+> rode em outra porta: `FRONTEND_PORT=5173 npm run dev:app` →
+> `http://localhost:5173`.
 
-## Acesso
+Cada workspace também roda sozinho (`cd backend && npm run dev`), mas o
+`npm install` precisa ser feito na raiz.
 
-Login **mockado** (RF-02). Usuários definidos em `backend/src/modules/auth/users.ts`:
+## Acesso e usuários
 
-| Usuário | Senha |
+Os usuários ficam na tabela `usuarios` do banco, com a senha guardada apenas
+como hash bcrypt. **Não há tela de cadastro de usuários** — quem tem acesso é
+definido por um arquivo e aplicado com um script:
+
+```bash
+cd backend
+cp usuarios.example.json usuarios.json   # edite com as pessoas reais
+npm run seed:usuarios                    # cria/atualiza; imprime as senhas geradas
+```
+
+O `usuarios.json` **não vai para o git**. Cada entrada aceita
+`username`, `nome`, `email`, `senha` (opcional) e `ativo` (opcional):
+
+- sem `senha`, um usuário novo recebe uma senha forte aleatória, exibida **uma
+  única vez** no terminal — repasse e peça a troca no primeiro acesso;
+- rodar de novo é seguro: atualiza quem já existe e cria só o que falta, sem
+  mexer nas senhas já definidas.
+
+Outras formas de informar a lista: `--file <caminho>` ou a variável de ambiente
+`USUARIOS_SEED` (JSON), usada no deploy. Flags: `--resetar-senhas` regera a senha
+de todos da lista; `--desativar-ausentes` marca `ativo = false` em quem está no
+banco mas não na lista.
+
+Para **revogar um acesso**, marque a pessoa como `"ativo": false` e rode o
+script de novo: o efeito é imediato, inclusive para sessões já abertas.
+Desativar preserva o histórico de quem cadastrou o quê — por isso não se apaga
+o registro. Cada pessoa troca a própria senha pelo ícone de cadeado no rodapé
+do menu lateral.
+
+## Carga da carteira de clientes
+
+Os clientes vêm da planilha do setor (`FRPes-001 Visão Geral (Setor Pessoal)`),
+importada por script. A planilha **não é versionada** — traz senhas de portais
+em texto puro.
+
+```bash
+cd backend
+npm run import:clientes -- --file "../FRPes-001 ... .xlsx" --dry-run   # só relata
+npm run import:clientes -- --file "../FRPes-001 ... .xlsx"             # grava
+```
+
+Rode sempre o `--dry-run` antes: ele produz o mesmo relatório da importação
+real sem tocar no banco.
+
+O importador **limpa a tabela de clientes e recarrega** tudo da planilha. Como
+as demais tabelas apontam para `clientes` com `ON DELETE CASCADE`, ocorrências,
+pendências e eventos futuros cairiam junto — por isso o script se recusa a rodar
+quando existem esses registros, e só prossegue com `--force`.
+
+Decisões de mapeamento (combinadas com o setor):
+
+| Situação na planilha | O que o importador faz |
 |---|---|
-| `gisele` | `contabilis` |
-| `admin` | `contabilis` |
+| Linha sem `CÓDIGO DA EMPRESA` válido (em branco ou `xx`) | Não importa; lista no relatório para cadastro manual |
+| Código repetido | Vale a última linha; o relatório aponta quais foram |
+| Texto em coluna de data (`Sem Procuração`, `Não se aplica`, `EXPIRADA`) | Grava vazio; o relatório conta cada valor descartado |
+| `SALÁRIO DE CONTRIBUIÇÃO` textual (`Um salário mínimo vigente`) | Não importa — a coluna é numérica no banco; relatado |
+| `SENHA` / `USUÁRIO` preenchidos | Vão para o cofre de credenciais, cifrados (AES-256-GCM) |
+
+> O cabeçalho é conferido antes de qualquer gravação: se a planilha mudar de
+> formato, o script aborta apontando a coluna divergente em vez de importar
+> dado trocado.
+
+### Campos que a planilha não cobre
+
+A ficha do sistema tem 16 campos que **não existem** como coluna na planilha
+(procurações DET e FGTS separadas, prazo de contrato de experiência,
+lançamentos fixos, particularidades, termo de ciência SST, data de vencimento
+do laudo, entre outros). Eles ficam vazios após a importação e precisam ser
+preenchidos pela equipe no próprio sistema — é por isso que, logo após a carga,
+o painel **"empresas com dados incompletos"** acusa toda a carteira.
 
 ## Estrutura da API
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/auth/login` | Autentica e devolve um JWT |
+| POST | `/api/auth/login` | Autentica e devolve um JWT (limitado a 10 tentativas / 15 min) |
 | GET | `/api/auth/me` | Usuário da sessão |
+| POST | `/api/auth/trocar-senha` | Troca a própria senha (exige a senha atual) |
 | GET | `/api/dashboard` | Métricas da tela inicial (KPIs, vencimentos, composição, atividade) |
 | GET | `/api/clientes` | Lista com `?q=`, `?situacao=`, `?responsavel=`, `?regime=` |
 | POST | `/api/clientes` | Cria cliente |

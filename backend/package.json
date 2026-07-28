@@ -14,17 +14,21 @@
     "migrate": "node-pg-migrate -j js -m migrations --envPath .env",
     "db:migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
+    "seed:usuarios": "tsx src/db/seed-usuarios.ts",
     "db:reset": "tsx src/db/reset.ts",
-    "db:refresh": "tsx src/db/reset.ts && tsx src/db/migrate.ts && tsx src/db/seed.ts"
+    "db:refresh": "tsx src/db/reset.ts && tsx src/db/migrate.ts && tsx src/db/seed.ts",
+    "import:clientes": "tsx src/db/import-clientes.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "kysely": "^0.27.5",
     "pg": "^8.13.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
