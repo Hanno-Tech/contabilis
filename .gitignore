@@ -7,3 +7,8 @@ coverage/
 *.log
 .DS_Store
 .vite/
+.vercel/
+
+# Lista real de usuários do seeder — contém nomes e, às vezes, senhas.
+# O modelo versionado é backend/usuarios.example.json.
+usuarios.json

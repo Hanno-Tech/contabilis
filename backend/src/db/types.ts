@@ -225,7 +225,24 @@ export interface SenhasSetorTable {
   updated_at: Generated<Timestamp>;
 }
 
+/**
+ * Usuários da aplicação. A senha é guardada só como hash bcrypt (`senha_hash`);
+ * `ativo = false` bloqueia o login preservando o histórico já gravado.
+ */
+export interface UsuariosTable {
+  id: Generated<string>;
+  username: string;
+  nome: string;
+  email: string | null;
+  senha_hash: string;
+  ativo: Generated<boolean>;
+  ultimo_acesso: Timestamp | null;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface Database {
+  usuarios: UsuariosTable;
   clientes: ClientesTable;
   cliente_folha: ClienteFolhaTable;
   cliente_credenciais: ClienteCredenciaisTable;

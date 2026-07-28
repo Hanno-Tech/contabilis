@@ -27,6 +27,8 @@ contabilis/
 | RNF-02 Segurança de credenciais | Senhas de portais são cifradas com **AES-256-GCM** em repouso e só retornam descriptografadas por endpoint dedicado de "revelar". |
 | RNF-03 Busca | Busca textual por nome, CNPJ e código + filtros por situação, responsável e regime. |
 | RNF-07 Dado em banco | PostgreSQL — sem arquivo compartilhado. |
+| Autenticação | Usuários na tabela `usuarios` com senha em **bcrypt** (12 rounds); JWT de 8h; login limitado a 10 tentativas por 15 min; usuário desativado perde o acesso na hora, mesmo com token válido. |
+| Segredos | `JWT_SECRET` e `CREDENTIALS_ENCRYPTION_KEY` são **obrigatórios em produção** — a API se recusa a subir com os valores de exemplo do repositório. |
 | Convenção coletiva | Registrada como texto livre na ficha do cliente (nome da convenção, situação e recolhimento de contribuição), sem cadastro separado. |
 
 ## Instalação automática no Windows (do zero, sem Node/Docker)
@@ -105,21 +107,44 @@ npm run dev                   # app em http://contabilis.local (porta 80)
 > funcionar sem `:porta`. Em desenvolvimento avulso (sem alias / sem admin),
 > rode em outra porta: `FRONTEND_PORT=5173 npm run dev` → `http://localhost:5173`.
 
-## Acesso
+## Acesso e usuários
 
-Login **mockado** (RF-02). Usuários definidos em `backend/src/modules/auth/users.ts`:
+Os usuários ficam na tabela `usuarios` do banco, com a senha guardada apenas
+como hash bcrypt. **Não há tela de cadastro de usuários** — quem tem acesso é
+definido por um arquivo e aplicado com um script:
 
-| Usuário | Senha |
-|---|---|
-| `gisele` | `contabilis` |
-| `admin` | `contabilis` |
+```bash
+cd backend
+cp usuarios.example.json usuarios.json   # edite com as pessoas reais
+npm run seed:usuarios                    # cria/atualiza; imprime as senhas geradas
+```
+
+O `usuarios.json` **não vai para o git**. Cada entrada aceita
+`username`, `nome`, `email`, `senha` (opcional) e `ativo` (opcional):
+
+- sem `senha`, um usuário novo recebe uma senha forte aleatória, exibida **uma
+  única vez** no terminal — repasse e peça a troca no primeiro acesso;
+- rodar de novo é seguro: atualiza quem já existe e cria só o que falta, sem
+  mexer nas senhas já definidas.
+
+Outras formas de informar a lista: `--file <caminho>` ou a variável de ambiente
+`USUARIOS_SEED` (JSON), usada no deploy. Flags: `--resetar-senhas` regera a senha
+de todos da lista; `--desativar-ausentes` marca `ativo = false` em quem está no
+banco mas não na lista.
+
+Para **revogar um acesso**, marque a pessoa como `"ativo": false` e rode o
+script de novo: o efeito é imediato, inclusive para sessões já abertas.
+Desativar preserva o histórico de quem cadastrou o quê — por isso não se apaga
+o registro. Cada pessoa troca a própria senha pelo ícone de cadeado no rodapé
+do menu lateral.
 
 ## Estrutura da API
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/auth/login` | Autentica e devolve um JWT |
+| POST | `/api/auth/login` | Autentica e devolve um JWT (limitado a 10 tentativas / 15 min) |
 | GET | `/api/auth/me` | Usuário da sessão |
+| POST | `/api/auth/trocar-senha` | Troca a própria senha (exige a senha atual) |
 | GET | `/api/dashboard` | Métricas da tela inicial (KPIs, vencimentos, composição, atividade) |
 | GET | `/api/clientes` | Lista com `?q=`, `?situacao=`, `?responsavel=`, `?regime=` |
 | POST | `/api/clientes` | Cria cliente |

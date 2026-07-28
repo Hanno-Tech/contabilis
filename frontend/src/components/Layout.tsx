@@ -11,6 +11,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
@@ -31,6 +32,7 @@ import { useState, type ReactNode } from 'react';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { brandGradient } from '../theme';
+import { TrocarSenhaDialog } from './TrocarSenhaDialog';
 
 const SIDEBAR_WIDTH = 256;
 
@@ -203,6 +205,7 @@ function NavGroupItem({ group, onNavigate }: { group: NavGroup; onNavigate?: () 
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
+  const [trocarSenhaAberto, setTrocarSenhaAberto] = useState(false);
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#fff' }}>
       <Brand />
@@ -241,6 +244,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               @{user?.username}
             </Typography>
           </Box>
+          <Tooltip title="Trocar senha">
+            <IconButton
+              onClick={() => setTrocarSenhaAberto(true)}
+              size="small"
+              sx={{ color: 'text.secondary' }}
+            >
+              <LockResetIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Sair">
             <IconButton onClick={logout} size="small" sx={{ color: 'text.secondary' }}>
               <LogoutIcon fontSize="small" />
@@ -248,6 +260,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </Tooltip>
         </Stack>
       </Box>
+      <TrocarSenhaDialog
+        open={trocarSenhaAberto}
+        onClose={() => setTrocarSenhaAberto(false)}
+      />
     </Box>
   );
 }

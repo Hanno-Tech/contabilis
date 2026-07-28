@@ -1,0 +1,13 @@
+[
+  {
+    "username": "gisele",
+    "nome": "Gisele",
+    "email": "gisele@contabilis.net"
+  },
+  {
+    "username": "admin",
+    "nome": "Administrador",
+    "email": null,
+    "senha": "defina-uma-senha-forte-aqui"
+  }
+]

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, Conflict, NotFound } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { validateBody } from '../../middleware/validate.js';
-import { listSelectableUsers } from '../auth/users.js';
+import { listSelectableUsers } from '../auth/usuarios.repository.js';
 import {
   pendenciaInputSchema,
   pendenciaUpdateSchema,
@@ -22,7 +22,7 @@ const hoje = () => new Date().toISOString().slice(0, 10);
 pendenciasRouter.get(
   '/opcoes',
   asyncHandler(async (_req, res) => {
-    res.json({ usuarios: listSelectableUsers(), situacoes: [...SITUACOES_PENDENCIA] });
+    res.json({ usuarios: await listSelectableUsers(), situacoes: [...SITUACOES_PENDENCIA] });
   }),
 );
 
