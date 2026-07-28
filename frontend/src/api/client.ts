@@ -2,8 +2,15 @@ import axios from 'axios';
 
 const TOKEN_KEY = 'contabilis.token';
 
+/**
+ * Por padrão a API é consumida na mesma origem do app (`/api`): em produção o
+ * Vercel serve os dois no mesmo domínio, e em desenvolvimento o Vite faz proxy
+ * de `/api` para o backend local (veja vite.config.ts). Assim não há CORS em
+ * nenhum dos dois ambientes. `VITE_API_URL` continua disponível para apontar
+ * para uma API em outro endereço.
+ */
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 export const tokenStore = {

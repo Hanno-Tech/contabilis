@@ -8,16 +8,24 @@ Baseado em [`analise-requisitos-dp.md`](./analise-requisitos-dp.md).
 
 ## Arquitetura
 
-Monorepo com **backend** e **frontend** totalmente separados, comunicando-se por
-uma API REST.
+Monorepo (workspaces npm) com **backend** e **frontend** separados, comunicando-se
+por uma API REST em `/api`.
 
 ```
 contabilis/
 ├── backend/    API REST  — Node + TypeScript + Express + PostgreSQL
-│               Query builder tipado: Kysely | Migrations: node-pg-migrate
+│               Query builder tipado: Kysely | Migrations: runner próprio
 ├── frontend/   SPA       — React + TypeScript + Vite + Material UI (MUI)
-└── docker-compose.yml    PostgreSQL 16
+├── api/        Ponto de entrada da API como função serverless no Vercel
+├── vercel.json Configuração do deploy (app + API no mesmo domínio)
+└── docker-compose.yml    PostgreSQL 16 para desenvolvimento
 ```
+
+Em produção o app e a API vivem **no mesmo domínio**, então o frontend chama
+`/api` em caminho relativo. Em desenvolvimento o Vite faz proxy de `/api` para o
+backend local — o comportamento é o mesmo nos dois ambientes e não há CORS.
+
+Para subir em servidor, veja **[DEPLOY.md](./DEPLOY.md)** (Vercel + Neon).
 
 ### Decisões de projeto que atendem os requisitos
 
@@ -77,35 +85,32 @@ Para remover só o app e manter os programas: adicione `-KeepPackages`.
 
 ## Subir o ambiente
 
-### 1. Banco de dados
-
 ```bash
+# 1. Dependências — um install na raiz cobre backend e frontend (workspaces)
+npm install
+
+# 2. Configuração
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# 3. Banco de dados
 docker compose up -d
-```
+npm run db:migrate            # cria as tabelas
+npm run seed                  # dados das planilhas de exemplo (opcional)
+npm run seed:usuarios         # cria os usuários — veja "Acesso e usuários"
 
-### 2. Backend
-
-```bash
-cd backend
-cp .env.example .env          # ajuste os segredos se quiser
-npm install
-npm run migrate up            # cria as tabelas (node-pg-migrate)
-npm run seed                  # carrega os dados das planilhas de exemplo
-npm run dev                   # API em http://localhost:3333
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-cp .env.example .env
-npm install
-npm run dev                   # app em http://contabilis.local (porta 80)
+# 4. Aplicação (em dois terminais)
+npm run dev:api               # API em http://localhost:3333
+npm run dev:app               # app em http://contabilis.local (porta 80)
 ```
 
 > Por padrão o Vite serve na **porta 80** para o alias `http://contabilis.local`
 > funcionar sem `:porta`. Em desenvolvimento avulso (sem alias / sem admin),
-> rode em outra porta: `FRONTEND_PORT=5173 npm run dev` → `http://localhost:5173`.
+> rode em outra porta: `FRONTEND_PORT=5173 npm run dev:app` →
+> `http://localhost:5173`.
+
+Cada workspace também roda sozinho (`cd backend && npm run dev`), mas o
+`npm install` precisa ser feito na raiz.
 
 ## Acesso e usuários
 

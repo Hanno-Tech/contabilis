@@ -284,9 +284,11 @@ CORS_ORIGIN=http://${AliasHost},http://localhost:5173
 "@ | Set-Content -Path $backendEnv -Encoding ascii
 Write-Ok "backend/.env"
 
+# VITE_API_URL vazio = mesma origem (/api); o Vite faz proxy para a API local.
 $frontendEnv = Join-Path $FrontendDir '.env'
 @"
-VITE_API_URL=http://localhost:$BackendPort/api
+VITE_API_URL=
+API_PROXY_TARGET=http://localhost:$BackendPort
 "@ | Set-Content -Path $frontendEnv -Encoding ascii
 Write-Ok "frontend/.env"
 
@@ -295,21 +297,21 @@ Write-Ok "frontend/.env"
 # ----------------------------------------------------------------------------
 Write-Step 'Instalando dependencias e preparando o banco'
 
+# O projeto e um monorepo com workspaces npm: um unico "npm install" na raiz
+# instala backend e frontend, com as dependencias em node_modules na raiz.
+Push-Location $InstallDir
+Write-Info 'npm install (backend + frontend)'
+cmd /c 'npm install'        ; if ($LASTEXITCODE -ne 0) { throw 'npm install falhou.' }
+Pop-Location
+Write-Ok 'Dependencias instaladas.'
+
 Push-Location $BackendDir
-Write-Info 'backend: npm install'
-cmd /c 'npm install'        ; if ($LASTEXITCODE -ne 0) { throw 'npm install (backend) falhou.' }
 Write-Info 'backend: migrations'
-cmd /c 'npm run migrate up' ; if ($LASTEXITCODE -ne 0) { throw 'migrations falharam.' }
+cmd /c 'npm run db:migrate' ; if ($LASTEXITCODE -ne 0) { throw 'migrations falharam.' }
 Write-Info 'backend: seed'
 cmd /c 'npm run seed'       ; if ($LASTEXITCODE -ne 0) { throw 'seed falhou.' }
 Pop-Location
 Write-Ok 'Backend pronto.'
-
-Push-Location $FrontendDir
-Write-Info 'frontend: npm install'
-cmd /c 'npm install'        ; if ($LASTEXITCODE -ne 0) { throw 'npm install (frontend) falhou.' }
-Pop-Location
-Write-Ok 'Frontend pronto.'
 
 # ----------------------------------------------------------------------------
 # 7. Alias no arquivo hosts

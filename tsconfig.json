@@ -1,0 +1,17 @@
+{
+  "//": "Cobre apenas a pasta api/ (funções serverless do Vercel). Backend e frontend têm os seus.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": ["api/**/*.ts"]
+}
