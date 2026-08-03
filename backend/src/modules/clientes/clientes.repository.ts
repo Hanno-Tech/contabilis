@@ -170,6 +170,7 @@ const FOLHA_COLUMNS = [
   'cliente_folha.possui_laudos_sst',
   'cliente_folha.empresa_responsavel_sst',
   'cliente_folha.data_vencimento_laudo',
+  'cliente_folha.data_vencimento_laudo_situacao',
   'cliente_folha.venc_procuracao_rfb',
   'cliente_folha.venc_procuracao_det_fgts',
   'cliente_folha.venc_procuracao_econsignado',
@@ -177,6 +178,7 @@ const FOLHA_COLUMNS = [
   'cliente_folha.inss_tipo_segurado',
   'cliente_folha.inss_nit',
   'cliente_folha.inss_codigo_recolhimento',
+  'cliente_folha.inss_opcao_recolhimento',
   'cliente_folha.inss_salario_contribuicao',
   'cliente_folha.inss_aliquota',
   // Reorganização da ficha (novos campos)
@@ -226,6 +228,7 @@ function folhaColumns(input: FolhaInput) {
     possui_laudos_sst: input.possui_laudos_sst ?? null,
     empresa_responsavel_sst: input.empresa_responsavel_sst ?? null,
     data_vencimento_laudo: input.data_vencimento_laudo ?? null,
+    data_vencimento_laudo_situacao: input.data_vencimento_laudo_situacao ?? null,
     termo_ciencia_sst: input.termo_ciencia_sst ?? null,
     venc_procuracao_rfb: input.venc_procuracao_rfb ?? null,
     venc_procuracao_det: input.venc_procuracao_det ?? null,
@@ -235,6 +238,7 @@ function folhaColumns(input: FolhaInput) {
     inss_tipo_segurado: input.inss_tipo_segurado ?? null,
     inss_nit: input.inss_nit ?? null,
     inss_codigo_recolhimento: input.inss_codigo_recolhimento ?? null,
+    inss_opcao_recolhimento: input.inss_opcao_recolhimento ?? null,
     inss_salario_contribuicao: numToStr(input.inss_salario_contribuicao),
     inss_aliquota: numToStr(input.inss_aliquota),
     // Espelho do 1º sindicato/convenção (mantém dashboard/lista funcionando).

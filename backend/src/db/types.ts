@@ -80,6 +80,7 @@ export interface ClienteFolhaTable {
   possui_laudos_sst: string | null;
   empresa_responsavel_sst: string | null;
   data_vencimento_laudo: DateOnly | null;
+  data_vencimento_laudo_situacao: string | null;
   termo_ciencia_sst: string | null;
   // Procurações
   venc_procuracao_rfb: DateOnly | null;
@@ -92,6 +93,7 @@ export interface ClienteFolhaTable {
   inss_tipo_segurado: string | null;
   inss_nit: string | null;
   inss_codigo_recolhimento: string | null;
+  inss_opcao_recolhimento: string | null;
   inss_salario_contribuicao: string | null;
   inss_aliquota: string | null;
   // Controle

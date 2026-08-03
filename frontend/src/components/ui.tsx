@@ -24,21 +24,50 @@ export function Mono({
   );
 }
 
-/** Card de bloco da ficha (preserva o agrupamento das planilhas — RNF-04). */
+/**
+ * Card de bloco da ficha (preserva o agrupamento das planilhas — RNF-04).
+ *
+ * `fill` serve ao dashboard: o card ocupa toda a altura da linha do Grid, de
+ * modo que os dois cards lado a lado terminam iguais, e o corpo rola por
+ * dentro. Com `maxHeight` a linha para de crescer — sem isso, um card com
+ * centenas de registros esticaria a página inteira.
+ */
 export function SectionCard({
   title,
   icon,
   children,
   action,
+  fill,
+  maxHeight,
 }: {
   title: string;
   icon?: ReactNode;
   children: ReactNode;
   action?: ReactNode;
+  fill?: boolean;
+  maxHeight?: number | string;
 }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5 }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2.5,
+        mb: 2.5,
+        ...(fill && {
+          // 100% da linha menos a própria margem inferior (mb: 2.5 = 20px).
+          height: 'calc(100% - 20px)',
+          maxHeight,
+          display: 'flex',
+          flexDirection: 'column',
+        }),
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 2, flexShrink: 0 }}
+      >
         <Stack direction="row" spacing={1} alignItems="center">
           {icon}
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -47,7 +76,22 @@ export function SectionCard({
         </Stack>
         {action}
       </Stack>
-      {children}
+      {fill ? (
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0, // deixa o flex encolher o suficiente para rolar
+            overflowY: 'auto',
+            // Espaço para a barra de rolagem não cobrir o conteúdo.
+            pr: 0.5,
+            mr: -0.5,
+          }}
+        >
+          {children}
+        </Box>
+      ) : (
+        children
+      )}
     </Paper>
   );
 }

@@ -56,6 +56,7 @@ export const CLIENTE_FOLHA_LABELS: Record<string, string> = {
   possui_laudos_sst: 'Possui laudos SST',
   empresa_responsavel_sst: 'Empresa responsável SST',
   data_vencimento_laudo: 'Vencimento do laudo',
+  data_vencimento_laudo_situacao: 'Situação do vencimento do laudo',
   termo_ciencia_sst: 'Termo de ciência (ausência de laudos)',
   // Procurações
   venc_procuracao_rfb: 'Vencimento procuração RFB',
@@ -67,6 +68,7 @@ export const CLIENTE_FOLHA_LABELS: Record<string, string> = {
   inss_tipo_segurado: 'INSS — Tipo de segurado',
   inss_nit: 'INSS — NIT',
   inss_codigo_recolhimento: 'INSS — Código de recolhimento',
+  inss_opcao_recolhimento: 'INSS — Opção de recolhimento',
   inss_salario_contribuicao: 'INSS — Salário de contribuição',
   inss_aliquota: 'INSS — Alíquota',
 };

@@ -112,7 +112,8 @@ export interface CredencialRevelada {
 export interface ClienteSindicato {
   id?: string;
   sindicato: string | null;
-  convencao_aplicavel_nome: string | null;
+  /** Removida do formulário; mantida no tipo para não perder o que já foi gravado. */
+  convencao_aplicavel_nome?: string | null;
   situacao_convencao: string | null;
   recolhe_contribuicao: string | null;
   ordem?: number;
@@ -169,6 +170,7 @@ export interface ClienteFolha {
   possui_laudos_sst: string | null;
   empresa_responsavel_sst: string | null;
   data_vencimento_laudo: string | null;
+  data_vencimento_laudo_situacao: string | null;
   termo_ciencia_sst: string | null;
   venc_procuracao_rfb: string | null;
   venc_procuracao_det_fgts: string | null;
@@ -179,6 +181,7 @@ export interface ClienteFolha {
   inss_tipo_segurado: string | null;
   inss_nit: string | null;
   inss_codigo_recolhimento: string | null;
+  inss_opcao_recolhimento: string | null;
   inss_salario_contribuicao: string | null;
   inss_aliquota: string | null;
   version: number;

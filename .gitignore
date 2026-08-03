@@ -22,5 +22,10 @@ FRPes-*.xlsx
 *Visão Geral (Setor Pessoal)*.xlsx
 Inclusão de Dados*.xlsx
 
+# Insumos de especificação trocados com o setor (listas suspensas, anotações).
+# O que vale fica no código (frontend/src/lib/listas.ts) e no README.
+Listas Suspensas*.xlsx
+Observações*.txt
+
 # Backups do atualiza:clientes — contêm dados de clientes.
 backend/backups/

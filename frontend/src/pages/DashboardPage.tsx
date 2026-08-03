@@ -36,6 +36,14 @@ import type { ClienteIncompleto, Dashboard, EventoProximo, Vencimento } from '..
 
 const CHART_COLORS = ['#FF8A1E', '#0E9F6E', '#52473D', '#0EA5E9', '#D97706', '#E11D48', '#14B8A6', '#EF8E19'];
 
+/**
+ * Teto de altura dos blocos de lista do dashboard. Sem ele, um bloco com
+ * centenas de registros (a carteira inteira em "Visão geral incompleta")
+ * estica a página por vários metros. Os dois blocos de cada linha ficam com a
+ * mesma altura e rolam por dentro.
+ */
+const ALTURA_BLOCO = 440;
+
 function saudacao(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Bom dia';
@@ -196,6 +204,8 @@ function VencimentosBlock({ data }: { data: Vencimento[] }) {
 
   return (
     <SectionCard
+      fill
+      maxHeight={ALTURA_BLOCO}
       title="Alertas de vencimento"
       icon={<NotificationsActiveIcon color="error" />}
       action={
@@ -345,6 +355,8 @@ function AtividadeBlock({ data }: { data: Dashboard['atividade'] }) {
   const navigate = useNavigate();
   return (
     <SectionCard
+      fill
+      maxHeight={ALTURA_BLOCO}
       title="Atividade recente"
       icon={<HistoryIcon color="primary" />}
       action={
@@ -415,6 +427,8 @@ function IncompletosBlock({ data }: { data: ClienteIncompleto[] }) {
   const navigate = useNavigate();
   return (
     <SectionCard
+      fill
+      maxHeight={ALTURA_BLOCO}
       title="Empresas com Visão geral incompleta"
       icon={<WarningAmberIcon sx={{ color: '#D97706' }} />}
       action={
@@ -480,6 +494,8 @@ function EventosBlock({ data }: { data: EventoProximo[] }) {
   };
   return (
     <SectionCard
+      fill
+      maxHeight={ALTURA_BLOCO}
       title="Eventos futuros a lançar"
       icon={<EventNoteIcon color="primary" />}
       action={

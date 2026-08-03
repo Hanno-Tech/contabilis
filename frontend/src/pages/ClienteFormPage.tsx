@@ -21,6 +21,32 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
 import { fetchFicha, updateFolha } from '../api/resources';
 import { SectionCard } from '../components/ui';
+import {
+  BENEFICIARIOS_OPCOES,
+  CODIGO_ROTINA_OPCOES,
+  CONSTRUCAO_CIVIL_OPCOES,
+  CPRB_OPCOES,
+  DOCUMENTO_OPCOES,
+  EMPRESA_SST_OPCOES,
+  ENCARGOS_ESCRITORIO_OPCOES,
+  FILIACAO_SINDICAL_OPCOES,
+  FORMA_ENVIO_OPCOES,
+  FORMA_PAGAMENTO_OPCOES,
+  META_ENTREGA_OPCOES,
+  OPCAO_RECOLHIMENTO_OPCOES,
+  OPERADORA_OPCOES,
+  POSSUI_FOLHA_OPCOES,
+  POSSUI_LAUDO_OPCOES,
+  RESPONSAVEL_FOLHA_OPCOES,
+  SIM_NAO_NA,
+  SITUACAO_CONVENCAO_OPCOES,
+  TERMO_RESPONSABILIDADE_OPCOES,
+  TIPO_SEGURADO_OPCOES,
+  VENCIMENTO_LAUDO_DATA,
+  VENCIMENTO_LAUDO_OPCOES,
+  derivarRecolhimento,
+  quadroVisivel,
+} from '../lib/listas';
 import type { ClienteSindicato } from '../types';
 
 type FieldType = 'text' | 'multiline' | 'date' | 'number' | 'select';
@@ -30,36 +56,12 @@ interface FieldDef {
   type?: FieldType;
   wide?: boolean;
   options?: string[];
+  /** Valor calculado a partir de outros campos — exibido só para leitura. */
+  derived?: boolean;
+  /** Só aparece quando esta condição for verdadeira para o estado atual. */
+  showIf?: (form: Record<string, string>) => boolean;
 }
 
-const FORMA_ENVIO_OPCOES = ['Físico', 'Gestta Messenger', 'Gestta Tarefas', 'Portal do cliente'];
-const TIPO_SEGURADO_OPCOES = ['Autônomo', 'Facultativo'];
-const SIM_NAO_NA = ['Sim', 'Não', 'Não se aplica'];
-const OPERADORA_OPCOES = ['Saúde São José', 'Unimed', 'Não se aplica'];
-const BENEFICIARIOS_OPCOES = ['Colaborador', 'Colaborador e Dependente', 'Não se aplica'];
-const FORMA_PAGAMENTO_OPCOES = ['Dinheiro', 'Crédito em conta', 'Pix', 'Não se aplica'];
-const POSSUI_FOLHA_OPCOES = [
-  'Não possui',
-  'Possui apenas pró labore',
-  'Possui apenas folha',
-  'Possui folha e pró labore',
-  'Possui folha de empregado doméstico',
-  'Possui guia avulsa de INSS',
-  'Possui apenas RPA',
-  'Não se aplica',
-];
-const RESPONSAVEL_FOLHA_OPCOES = ['Priscila', 'Pâmela', 'Samuel', 'Fernanda'];
-const CODIGO_ROTINA_OPCOES = [
-  '11 - CÁLCULO PRÓ LABORES SIMPLES',
-  '12 - CÁLCULO EMPRESAS COM FUNCIONÁRIOS E SEM LANÇAMENTOS',
-  '13 - CÁLCULO EMPRESAS FATOR "R"',
-];
-const META_ENTREGA_OPCOES = ['Dia 26 do mês da folha', '1º dia útil', '2º dia útil', '3º dia útil'];
-const EMPRESA_SST_OPCOES = [
-  'Medset', 'Probem', 'Maxipas', 'Dra. Laura', 'Mioprev', 'Ergomed', 'MedIçara',
-  'Mais Proteção', 'Sesi', 'MedCri', 'Macroseg', 'Previ&Seg', 'CliniSeg', 'CliniMet', 'Não se aplica',
-];
-const SITUACAO_CONVENCAO_OPCOES = ['Vigente', 'Vencida', 'Não se aplica'];
 const TIPO_LABEL: Record<string, string> = {
   seguro_desemprego: 'Seguro Desemprego',
   empregado_domestico: 'Empregado Doméstico',
@@ -73,9 +75,14 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
       { key: 'fator_r', label: 'Fator "R"?', type: 'select', options: SIM_NAO_NA },
       { key: 'atividade_concomitante', label: 'Atividades concomitantes', type: 'select', options: SIM_NAO_NA },
       { key: 'inss_retido_nf', label: 'INSS retido na NF?', type: 'select', options: SIM_NAO_NA },
-      { key: 'construcao_civil', label: 'Construção civil?' },
-      { key: 'cprb', label: 'CPRB?' },
-      { key: 'encargos_recolhidos_escritorio', label: 'Encargos recolhidos pelo escritório', type: 'multiline', wide: true },
+      { key: 'construcao_civil', label: 'Construção civil?', type: 'select', options: CONSTRUCAO_CIVIL_OPCOES },
+      { key: 'cprb', label: 'CPRB?', type: 'select', options: CPRB_OPCOES },
+      {
+        key: 'encargos_recolhidos_escritorio',
+        label: 'Encargos recolhidos pelo escritório',
+        type: 'select',
+        options: ENCARGOS_ESCRITORIO_OPCOES,
+      },
     ],
   },
   {
@@ -108,18 +115,36 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   {
     title: 'Informações sobre SST',
     fields: [
-      { key: 'possui_laudos_sst', label: 'Possui laudo de SST?', type: 'select', options: SIM_NAO_NA },
+      { key: 'possui_laudos_sst', label: 'Possui laudo de SST?', type: 'select', options: POSSUI_LAUDO_OPCOES },
       { key: 'empresa_responsavel_sst', label: 'Empresa responsável', type: 'select', options: EMPRESA_SST_OPCOES },
-      { key: 'data_vencimento_laudo', label: 'Vencimento do laudo', type: 'date' },
-      { key: 'termo_ciencia_sst', label: 'Termo de ciência enviado (ausência de laudos)?', type: 'select', options: SIM_NAO_NA },
+      // Vencimento é híbrido: escolhe-se a situação e, só em "Data informada",
+      // abre-se o campo de data (que é o que alimenta os alertas do dashboard).
+      {
+        key: 'data_vencimento_laudo_situacao',
+        label: 'Data de vencimento',
+        type: 'select',
+        options: VENCIMENTO_LAUDO_OPCOES,
+      },
+      {
+        key: 'data_vencimento_laudo',
+        label: 'Vencimento do laudo',
+        type: 'date',
+        showIf: (f) => f.data_vencimento_laudo_situacao === VENCIMENTO_LAUDO_DATA,
+      },
+      {
+        key: 'termo_ciencia_sst',
+        label: 'Assinou termo de responsabilidade?',
+        type: 'select',
+        options: TERMO_RESPONSABILIDADE_OPCOES,
+      },
     ],
   },
   {
     title: 'Forma de envio dos documentos',
     fields: [
       { key: 'envio_meio', label: 'Forma de envio', type: 'select', options: FORMA_ENVIO_OPCOES },
+      { key: 'envio_documento', label: 'Documento', type: 'select', options: DOCUMENTO_OPCOES },
       { key: 'envio_contato', label: 'Contato', type: 'multiline', wide: true },
-      { key: 'envio_observacoes', label: 'Observações', type: 'multiline', wide: true },
     ],
   },
   {
@@ -127,9 +152,16 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
     fields: [
       { key: 'inss_nit', label: 'NIT' },
       { key: 'inss_tipo_segurado', label: 'Tipo de segurado', type: 'select', options: TIPO_SEGURADO_OPCOES },
-      { key: 'inss_codigo_recolhimento', label: 'Código de recolhimento' },
+      {
+        key: 'inss_opcao_recolhimento',
+        label: 'Opção de recolhimento',
+        type: 'select',
+        options: OPCAO_RECOLHIMENTO_OPCOES,
+      },
+      // Código e alíquota saem do par (tipo de segurado, opção de recolhimento).
+      { key: 'inss_codigo_recolhimento', label: 'Código de recolhimento', derived: true },
+      { key: 'inss_aliquota', label: 'Alíquota', derived: true },
       { key: 'inss_salario_contribuicao', label: 'Salário de contribuição', type: 'number' },
-      { key: 'inss_aliquota', label: 'Alíquota', type: 'number' },
     ],
   },
   {
@@ -209,8 +241,33 @@ export function ClienteFormPage() {
       payload[key] = raw === '' ? null : NUMBER_FIELDS.has(key) ? Number(raw) : raw;
     }
 
+    // Código de recolhimento e alíquota são derivados, não digitados. Só
+    // recalcula quando o quadro está à mostra: para os tipos de cliente que não
+    // o exibem, sobrescrever aqui apagaria o que já está gravado, já que os
+    // campos de origem nem aparecem na tela.
+    if (quadroVisivel('Dados de contribuintes individuais', ficha?.tipo_cliente)) {
+      const derivado = derivarRecolhimento(
+        form.inss_tipo_segurado ?? '',
+        form.inss_opcao_recolhimento ?? '',
+      );
+      payload.inss_codigo_recolhimento = derivado?.codigo ?? null;
+      payload.inss_aliquota = derivado ? Number(derivado.aliquota) : null;
+    }
+
+    // A data do laudo só faz sentido quando a situação é "Data informada";
+    // nas demais ("Desobrigada", "Não possui Laudo") ela é limpa, senão ficaria
+    // um vencimento órfão alimentando os alertas do dashboard. Só mexe quando a
+    // situação foi de fato preenchida — senão uma ficha antiga, que só tem a
+    // data, perderia o vencimento no primeiro salvamento.
+    if (
+      form.data_vencimento_laudo_situacao &&
+      form.data_vencimento_laudo_situacao !== VENCIMENTO_LAUDO_DATA
+    ) {
+      payload.data_vencimento_laudo = null;
+    }
+
     payload.sindicatos = sindicatos
-      .filter((s) => s.sindicato || s.convencao_aplicavel_nome || s.situacao_convencao || s.recolhe_contribuicao)
+      .filter((s) => s.sindicato || s.situacao_convencao || s.recolhe_contribuicao)
       .map((s) => ({
         sindicato: s.sindicato || null,
         convencao_aplicavel_nome: s.convencao_aplicavel_nome || null,
@@ -259,6 +316,31 @@ export function ClienteFormPage() {
   if (!ficha) return <Alert severity="error">Não foi possível carregar o cliente.</Alert>;
 
   const renderField = (f: FieldDef) => {
+    if (f.showIf && !f.showIf(form)) return null;
+
+    // Campos derivados (código de recolhimento e alíquota) não são digitados:
+    // saem do par tipo de segurado + opção de recolhimento.
+    if (f.derived) {
+      const derivado = derivarRecolhimento(
+        form.inss_tipo_segurado ?? '',
+        form.inss_opcao_recolhimento ?? '',
+      );
+      const valorDerivado =
+        f.key === 'inss_codigo_recolhimento' ? derivado?.codigo : derivado?.aliquota;
+      return (
+        <Grid key={f.key} item xs={12} sm={6} md={4}>
+          <TextField
+            label={f.label}
+            value={valorDerivado ?? ''}
+            fullWidth
+            size="small"
+            disabled
+            helperText="Preenchido automaticamente"
+          />
+        </Grid>
+      );
+    }
+
     const value = form[f.key] ?? '';
     if (f.type === 'select') {
       const opts = f.options ?? [];
@@ -292,9 +374,14 @@ export function ClienteFormPage() {
   };
 
   const cardByTitle = (title: string) => SCALAR_CARDS.find((c) => c.title === title)!;
+
+  /** Cada tipo de cliente usa um subconjunto dos quadros da ficha. */
+  const visivel = (titulo: string) => quadroVisivel(titulo, ficha.tipo_cliente);
+
   // Função que retorna JSX (NÃO um componente) — evita remontar o subtree a cada
   // tecla, o que fazia os inputs perderem o foco.
   const scalarCard = (title: string) => {
+    if (!visivel(title)) return null;
     const card = cardByTitle(title);
     return (
       <SectionCard title={card.title}>
@@ -321,38 +408,36 @@ export function ClienteFormPage() {
       )}
 
       {/* Informações tributárias (com Regime só leitura) */}
-      <SectionCard title="Informações tributárias">
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              label="Regime de tributação"
-              value={regime}
-              fullWidth
-              size="small"
-              disabled
-              helperText="Editado em Informações gerais"
-            />
+      {visivel('Informações tributárias') && (
+        <SectionCard title="Informações tributárias">
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField
+                label="Regime de tributação"
+                value={regime}
+                fullWidth
+                size="small"
+                disabled
+                helperText="Editado em Informações gerais"
+              />
+            </Grid>
+            {cardByTitle('Informações tributárias').fields.map(renderField)}
           </Grid>
-          {cardByTitle('Informações tributárias').fields.map(renderField)}
-        </Grid>
-      </SectionCard>
+        </SectionCard>
+      )}
 
       {scalarCard('Admissão')}
-
-      <SectionCard title="Rescisão">
-        <Typography variant="body2" color="text.disabled">Campos a definir.</Typography>
-      </SectionCard>
-
       {scalarCard('Fechamento da folha')}
 
       {/* Informações sindicais (vários) */}
+      {visivel('Informações sindicais') && (
       <SectionCard
         title="Informações sindicais"
         action={
           <Button
             size="small"
             startIcon={<AddIcon />}
-            onClick={() => setSindicatos([...sindicatos, { sindicato: '', convencao_aplicavel_nome: '', situacao_convencao: '', recolhe_contribuicao: '' }])}
+            onClick={() => setSindicatos([...sindicatos, { sindicato: '', situacao_convencao: '', recolhe_contribuicao: '' }])}
           >
             Adicionar
           </Button>
@@ -372,10 +457,22 @@ export function ClienteFormPage() {
                 </Stack>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <TextField label="Sindicato ao qual está sujeito" value={s.sindicato ?? ''} onChange={(e) => set({ sindicato: e.target.value })} fullWidth size="small" />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField label="Convenção aplicável" value={s.convencao_aplicavel_nome ?? ''} onChange={(e) => set({ convencao_aplicavel_nome: e.target.value })} fullWidth size="small" />
+                    <TextField
+                      select
+                      label="Filiação sindical"
+                      value={s.sindicato ?? ''}
+                      onChange={(e) => set({ sindicato: e.target.value })}
+                      fullWidth
+                      size="small"
+                    >
+                      <MenuItem value=""><em>Não informado</em></MenuItem>
+                      {(s.sindicato && !FILIACAO_SINDICAL_OPCOES.includes(s.sindicato)
+                        ? [...FILIACAO_SINDICAL_OPCOES, s.sindicato]
+                        : FILIACAO_SINDICAL_OPCOES
+                      ).map((o) => (
+                        <MenuItem key={o} value={o}>{o}</MenuItem>
+                      ))}
+                    </TextField>
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
@@ -403,21 +500,24 @@ export function ClienteFormPage() {
           {sindicatos.length === 0 && <Typography variant="body2" color="text.disabled">Nenhum sindicato adicionado.</Typography>}
         </Stack>
       </SectionCard>
+      )}
 
       {scalarCard('Informações sobre SST')}
       {scalarCard('Forma de envio dos documentos')}
       {scalarCard('Dados de contribuintes individuais')}
 
       {/* Empregador doméstico */}
-      <SectionCard title="Dados do empregador doméstico">
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          A senha é armazenada cifrada. Deixe em branco para manter a atual.
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}><TextField label="Usuário e-social" value={edUsuario} onChange={(e) => setEdUsuario(e.target.value)} fullWidth size="small" /></Grid>
-          <Grid item xs={12} sm={6}><TextField label="Senha" type="password" value={edSenha} onChange={(e) => setEdSenha(e.target.value)} fullWidth size="small" placeholder="••••••" /></Grid>
-        </Grid>
-      </SectionCard>
+      {visivel('Dados do empregador doméstico') && (
+        <SectionCard title="Dados do empregador doméstico">
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            A senha é armazenada cifrada. Deixe em branco para manter a atual.
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}><TextField label="Usuário e-social" value={edUsuario} onChange={(e) => setEdUsuario(e.target.value)} fullWidth size="small" /></Grid>
+            <Grid item xs={12} sm={6}><TextField label="Senha" type="password" value={edSenha} onChange={(e) => setEdSenha(e.target.value)} fullWidth size="small" placeholder="••••••" /></Grid>
+          </Grid>
+        </SectionCard>
+      )}
 
       {scalarCard('Procurações')}
 

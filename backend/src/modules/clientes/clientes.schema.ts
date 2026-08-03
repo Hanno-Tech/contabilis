@@ -103,6 +103,7 @@ export const folhaInputSchema = z.object({
   possui_laudos_sst: text,
   empresa_responsavel_sst: text,
   data_vencimento_laudo: dateStr,
+  data_vencimento_laudo_situacao: text,
   termo_ciencia_sst: text,
   // Procurações
   venc_procuracao_rfb: dateStr,
@@ -114,6 +115,7 @@ export const folhaInputSchema = z.object({
   inss_tipo_segurado: text,
   inss_nit: text,
   inss_codigo_recolhimento: text,
+  inss_opcao_recolhimento: text,
   inss_salario_contribuicao: num,
   inss_aliquota: num,
   // Sindicatos / convenções (lista)

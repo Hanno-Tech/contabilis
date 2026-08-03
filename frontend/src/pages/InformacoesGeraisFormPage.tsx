@@ -17,17 +17,9 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
 import { createCliente, fetchCliente, updateCliente } from '../api/resources';
 import { SectionCard, formatDocumento, isValidDocumento } from '../components/ui';
+import { RESPONSAVEL_FOLHA_OPCOES, TIPO_CLIENTE_OPCOES } from '../lib/listas';
 
 const SITUACOES = ['Ativa', 'Ativa sem movimento', 'Baixada', 'Devolvida', 'Transferida', 'Paralisada', 'Em constituição'];
-const TIPO_CLIENTE_OPCOES = [
-  'Empresa normal',
-  'MEI',
-  'Empregador doméstico',
-  'Contribuinte Facultativo',
-  'Contribuinte Individual',
-  'Empregador rural',
-  'Associação',
-];
 const REGIME_OPCOES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real', 'SIMEI', 'Não se aplica'];
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
@@ -198,9 +190,26 @@ export function InformacoesGeraisFormPage({ mode }: { mode: 'create' | 'edit' })
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField label="Responsável" value={form.responsavel} onChange={(e) => setField('responsavel', e.target.value)} fullWidth size="small" />
-          </Grid>
+          {/* No cadastro de novo cliente não se pede o responsável: ele é
+              definido na ficha, em "Responsável pelo fechamento da folha".
+              Na edição o campo continua, para manter o que já está gravado. */}
+          {isEdit && (
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Responsável"
+                value={form.responsavel}
+                onChange={(e) => setField('responsavel', e.target.value)}
+                fullWidth
+                size="small"
+              >
+                <MenuItem value=""><em>Não informado</em></MenuItem>
+                {withCurrent(RESPONSAVEL_FOLHA_OPCOES, form.responsavel).map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          )}
           <Grid item xs={12} sm={6}>
             <TextField select label="Situação" value={form.situacao} onChange={(e) => setField('situacao', e.target.value)} fullWidth size="small">
               {withCurrent(SITUACOES, form.situacao).map((s) => (
