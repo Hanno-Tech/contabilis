@@ -173,7 +173,10 @@ export interface ClienteFolha {
   data_vencimento_laudo_situacao: string | null;
   termo_ciencia_sst: string | null;
   venc_procuracao_rfb: string | null;
+  venc_procuracao_rfb_situacao: string | null;
   venc_procuracao_det_fgts: string | null;
+  venc_procuracao_det_fgts_situacao: string | null;
+  venc_procuracao_econsignado_situacao: string | null;
   venc_procuracao_det: string | null;
   venc_procuracao_fgts: string | null;
   venc_procuracao_econsignado: string | null;
@@ -198,6 +201,28 @@ export interface Filtros {
   situacoes: string[];
   responsaveis: string[];
   regimes: string[];
+}
+
+/**
+ * Estrutura da ficha vinda do backend (`ficha.rules.ts`) — quadros, campos e o
+ * que é exigido. Uma definição só para o formulário e para o cálculo de
+ * completude do dashboard.
+ */
+export type Obrigatoriedade =
+  | { tipo: 'obrigatorio' }
+  | { tipo: 'opcional' }
+  | { tipo: 'condicional'; dependeDe: string; valores: string[] };
+
+export interface CampoFicha {
+  campo: string;
+  rotulo: string;
+  origem: 'cliente' | 'folha';
+  obrigatoriedade: Obrigatoriedade;
+}
+
+export interface EstruturaFicha {
+  quadros: { titulo: string; campos: CampoFicha[] }[];
+  quadrosPorTipo: Record<string, string[]>;
 }
 
 export interface Usuario {

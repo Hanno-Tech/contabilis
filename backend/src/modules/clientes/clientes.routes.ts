@@ -9,6 +9,7 @@ import {
   type ClienteUpdate,
   type FolhaUpdate,
 } from './clientes.schema.js';
+import { QUADROS, QUADROS_POR_TIPO } from './ficha.rules.js';
 import * as repo from './clientes.repository.js';
 import * as audit from '../audit/audit.repository.js';
 
@@ -22,6 +23,16 @@ clientesRouter.get(
     res.json(await repo.listFiltros());
   }),
 );
+
+/**
+ * Estrutura da ficha: quadros, campos e o que é exigido de cada tipo de
+ * cliente. O formulário consome isto para decidir que quadros mostrar, e o
+ * dashboard usa as mesmas regras para calcular a completude — uma definição só,
+ * em `ficha.rules.ts`.
+ */
+clientesRouter.get('/estrutura-ficha', (_req, res) => {
+  res.json({ quadros: QUADROS, quadrosPorTipo: QUADROS_POR_TIPO });
+});
 
 // Listar com busca e filtros
 clientesRouter.get(

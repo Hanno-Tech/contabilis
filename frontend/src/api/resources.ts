@@ -7,6 +7,7 @@ import type {
   ClienteListItem,
   CredencialRevelada,
   EventoFuturo,
+  EstruturaFicha,
   Filtros,
   Ocorrencia,
   OcorrenciaOpcoes,
@@ -62,6 +63,15 @@ export async function listClientes(params: ClienteQuery) {
 
 export async function fetchFiltros() {
   const { data } = await api.get<Filtros>('/clientes/filtros');
+  return data;
+}
+
+/**
+ * Estrutura da ficha (quadros e regras de obrigatoriedade). Definida no
+ * backend para que formulário e dashboard usem a mesma regra.
+ */
+export async function fetchEstruturaFicha() {
+  const { data } = await api.get<EstruturaFicha>('/clientes/estrutura-ficha');
   return data;
 }
 

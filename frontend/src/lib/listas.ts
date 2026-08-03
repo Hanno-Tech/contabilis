@@ -59,6 +59,14 @@ export const VENCIMENTO_LAUDO_OPCOES = [
   VENCIMENTO_LAUDO_DATA,
 ];
 
+/**
+ * Procurações seguem o mesmo padrão do laudo. Sem isso, "não tem procuração"
+ * ficava indistinguível de "ainda não cadastramos" — e o cliente nunca saía da
+ * lista de fichas incompletas.
+ */
+export const PROCURACAO_DATA = 'Data informada';
+export const PROCURACAO_OPCOES = ['Sem procuração', 'Não se aplica', PROCURACAO_DATA];
+
 // -------------------------------------------- Forma de envio dos documentos
 export const FORMA_ENVIO_OPCOES = [
   'Físico',
@@ -161,24 +169,29 @@ export const TIPO_CLIENTE_OPCOES = [
 ];
 
 /**
- * Quais quadros da ficha aparecem para cada tipo de cliente.
+ * Cópia de emergência da regra de quadros por tipo de cliente.
  *
- * `undefined` = mostra todos (caso de "Empregador rural", que a especificação
- * não trata). Quem não estiver na lista de um tipo específico fica oculto.
+ * A fonte é o backend (`ficha.rules.ts`), servida em
+ * `GET /api/clientes/estrutura-ficha` — é ela que o dashboard usa para calcular
+ * a completude. Isto aqui só cobre o intervalo entre abrir a tela e a resposta
+ * chegar; se as duas divergirem, vale a do backend.
  */
-export const QUADROS_POR_TIPO: Record<string, string[] | undefined> = {
+const QUADROS_POR_TIPO_PADRAO: Record<string, string[]> = {
   'Empregador doméstico': [
+    'Informações gerais',
     'Dados do empregador doméstico',
     'Procurações',
     'Forma de envio dos documentos',
     'Senhas',
   ],
   'Contribuinte Facultativo': [
+    'Informações gerais',
     'Dados de contribuintes individuais',
     'Forma de envio dos documentos',
     'Senhas',
   ],
   'Contribuinte Individual': [
+    'Informações gerais',
     'Dados de contribuintes individuais',
     'Forma de envio dos documentos',
     'Senhas',
@@ -190,12 +203,16 @@ const QUADROS_OCULTOS_EMPRESA = ['Dados de contribuintes individuais', 'Dados do
 const TIPOS_EMPRESA = ['Empresa normal', 'MEI', 'Associação'];
 
 /** Decide se um quadro deve aparecer para o tipo de cliente informado. */
-export function quadroVisivel(quadro: string, tipoCliente: string | null | undefined): boolean {
+export function quadroVisivel(
+  quadro: string,
+  tipoCliente: string | null | undefined,
+  quadrosPorTipo: Record<string, string[]> = QUADROS_POR_TIPO_PADRAO,
+): boolean {
   const tipo = (tipoCliente ?? '').trim();
   if (!tipo) return true; // sem tipo definido, mostra tudo
 
   if (TIPOS_EMPRESA.includes(tipo)) return !QUADROS_OCULTOS_EMPRESA.includes(quadro);
 
-  const permitidos = QUADROS_POR_TIPO[tipo];
+  const permitidos = quadrosPorTipo[tipo];
   return permitidos ? permitidos.includes(quadro) : true;
 }

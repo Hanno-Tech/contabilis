@@ -84,10 +84,13 @@ export interface ClienteFolhaTable {
   termo_ciencia_sst: string | null;
   // Procurações
   venc_procuracao_rfb: DateOnly | null;
+  venc_procuracao_rfb_situacao: string | null;
   venc_procuracao_det_fgts: DateOnly | null;
+  venc_procuracao_det_fgts_situacao: string | null;
   venc_procuracao_det: DateOnly | null;
   venc_procuracao_fgts: DateOnly | null;
   venc_procuracao_econsignado: DateOnly | null;
+  venc_procuracao_econsignado_situacao: string | null;
   emails_notificacao_det: string | null;
   // INSS autônomo/facultativo
   inss_tipo_segurado: string | null;

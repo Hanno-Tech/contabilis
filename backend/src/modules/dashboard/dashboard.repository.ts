@@ -1,5 +1,6 @@
 import { sql } from 'kysely';
 import { db } from '../../db/index.js';
+import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 
 /**
  * Métricas da tela inicial (dashboard). Tudo derivado dos dados já existentes:
@@ -184,78 +185,23 @@ export interface ClienteIncompleto {
   faltantes: number; // quantidade de campos em branco na Visão geral
 }
 
-const vazio = (v: unknown) => v === null || v === undefined || String(v).trim() === '';
-
 /**
- * Campos escalares da Visão geral (ficha) considerados no cálculo de completude.
- * Espelham os campos exibidos na tela "Informações Gerais" (cliente + folha),
- * exceto as listas variáveis (sindicatos, senhas). Código, razão social e
- * situação são sempre preenchidos (obrigatórios/default) e ficam de fora.
- */
-const CAMPOS_CLIENTE = [
-  'cnpj',
-  'tipo_cliente',
-  'regime_tributacao',
-  'data_evento_situacao',
-  'responsavel',
-] as const;
-
-const CAMPOS_FOLHA = [
-  // Tributárias
-  'fator_r',
-  'atividade_concomitante',
-  'inss_retido_nf',
-  'construcao_civil',
-  'cprb',
-  'encargos_recolhidos_escritorio',
-  // Admissão
-  'concede_plano_saude',
-  'plano_operadora',
-  'plano_beneficiarios',
-  'forma_pagamento_salarios',
-  'prazo_contrato_experiencia',
-  'cargos_insalubres_perigosos',
-  'lancamentos_fixos',
-  'relatorios_admissao',
-  'particularidades_cliente',
-  // Fechamento
-  'possui_folha',
-  'responsavel_fechamento_folha',
-  'folha_rotina_automatica',
-  'codigo_rotina_automatica',
-  'data_meta_entrega_folha',
-  'apura_ponto_escritorio',
-  'realiza_lancamentos',
-  'observacoes_folha',
-  // SST
-  'possui_laudos_sst',
-  'empresa_responsavel_sst',
-  'data_vencimento_laudo',
-  'termo_ciencia_sst',
-  // Envio de documentos
-  'envio_meio',
-  'envio_contato',
-  'envio_observacoes',
-  // Contribuintes individuais
-  'inss_nit',
-  'inss_tipo_segurado',
-  'inss_codigo_recolhimento',
-  'inss_salario_contribuicao',
-  'inss_aliquota',
-  // Procurações
-  'venc_procuracao_rfb',
-  'venc_procuracao_det',
-  'venc_procuracao_fgts',
-  'venc_procuracao_econsignado',
-  'emails_notificacao_det',
-] as const;
-
-/**
- * Empresas com a Visão geral incompleta: qualquer campo escalar da ficha em
- * branco. Não exige as listas (sindicatos, senhas). Devolve só a contagem de
- * campos faltantes — a tela leva à Visão geral para completar.
+ * Empresas com a Visão geral incompleta.
+ *
+ * A regra de o que é exigível vive em `ficha.rules.ts` (fonte única, também
+ * consumida pelo formulário): um campo só conta quando o quadro dele aparece
+ * para o tipo daquele cliente, quando é obrigatório de fato, e — nos
+ * condicionais — quando a dependência está satisfeita. Sem isso o painel
+ * cobrava, por exemplo, "operadora do plano" de quem não concede plano.
  */
 async function getIncompletos(): Promise<ClienteIncompleto[]> {
+  const camposCliente = [
+    ...new Set(TODOS_CAMPOS.filter((c) => c.origem === 'cliente').map((c) => c.campo)),
+  ];
+  const camposFolha = [
+    ...new Set(TODOS_CAMPOS.filter((c) => c.origem === 'folha').map((c) => c.campo)),
+  ];
+
   const rows = await db
     .selectFrom('clientes')
     .leftJoin('cliente_folha', 'cliente_folha.cliente_id', 'clientes.id')
@@ -263,17 +209,21 @@ async function getIncompletos(): Promise<ClienteIncompleto[]> {
       'clientes.id',
       'clientes.codigo',
       'clientes.nome',
-      ...CAMPOS_CLIENTE.map((c) => `clientes.${c}` as const),
-      ...CAMPOS_FOLHA.map((c) => `cliente_folha.${c}` as const),
+      ...camposCliente.map((c) => `clientes.${c}` as never),
+      ...camposFolha.map((c) => `cliente_folha.${c}` as never),
     ])
     .orderBy('clientes.nome')
     .execute();
 
   return rows
     .map((r) => {
-      const campos = [...CAMPOS_CLIENTE, ...CAMPOS_FOLHA];
-      const faltantes = campos.filter((c) => vazio((r as Record<string, unknown>)[c])).length;
-      return { id: r.id, codigo: r.codigo, nome: r.nome, faltantes };
+      const faltantes = camposFaltantes(r as unknown as Record<string, unknown>);
+      return {
+        id: (r as { id: string }).id,
+        codigo: (r as { codigo: number }).codigo,
+        nome: (r as { nome: string }).nome,
+        faltantes: faltantes.length,
+      };
     })
     .filter((r) => r.faltantes > 0);
 }

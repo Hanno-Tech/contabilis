@@ -19,7 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
-import { fetchFicha, updateFolha } from '../api/resources';
+import { fetchEstruturaFicha, fetchFicha, updateFolha } from '../api/resources';
 import { SectionCard } from '../components/ui';
 import {
   BENEFICIARIOS_OPCOES,
@@ -37,6 +37,8 @@ import {
   OPERADORA_OPCOES,
   POSSUI_FOLHA_OPCOES,
   POSSUI_LAUDO_OPCOES,
+  PROCURACAO_DATA,
+  PROCURACAO_OPCOES,
   RESPONSAVEL_FOLHA_OPCOES,
   SIM_NAO_NA,
   SITUACAO_CONVENCAO_OPCOES,
@@ -166,11 +168,32 @@ const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   },
   {
     title: 'Procurações',
+    // Cada procuração é situação + data, como no laudo de SST: "Sem procuração"
+    // precisa ser registrável, senão fica indistinguível de campo não preenchido.
+    // DET e FGTS Digital são uma só procuração (é assim que a planilha do setor
+    // trata, e é onde estão os dados importados).
     fields: [
-      { key: 'venc_procuracao_rfb', label: 'Procuração RFB', type: 'date' },
-      { key: 'venc_procuracao_det', label: 'Procuração DET', type: 'date' },
-      { key: 'venc_procuracao_fgts', label: 'Procuração FGTS Digital', type: 'date' },
-      { key: 'venc_procuracao_econsignado', label: 'Procuração e-Consignado', type: 'date' },
+      { key: 'venc_procuracao_rfb_situacao', label: 'Procuração RFB', type: 'select', options: PROCURACAO_OPCOES },
+      {
+        key: 'venc_procuracao_rfb',
+        label: 'Vencimento da RFB',
+        type: 'date',
+        showIf: (f) => f.venc_procuracao_rfb_situacao === PROCURACAO_DATA,
+      },
+      { key: 'venc_procuracao_det_fgts_situacao', label: 'Procuração DET e FGTS Digital', type: 'select', options: PROCURACAO_OPCOES },
+      {
+        key: 'venc_procuracao_det_fgts',
+        label: 'Vencimento da DET/FGTS',
+        type: 'date',
+        showIf: (f) => f.venc_procuracao_det_fgts_situacao === PROCURACAO_DATA,
+      },
+      { key: 'venc_procuracao_econsignado_situacao', label: 'Procuração e-Consignado', type: 'select', options: PROCURACAO_OPCOES },
+      {
+        key: 'venc_procuracao_econsignado',
+        label: 'Vencimento do e-Consignado',
+        type: 'date',
+        showIf: (f) => f.venc_procuracao_econsignado_situacao === PROCURACAO_DATA,
+      },
       { key: 'emails_notificacao_det', label: 'E-mails que recebem o DET', wide: true },
     ],
   },
@@ -206,6 +229,13 @@ export function ClienteFormPage() {
   const [saving, setSaving] = useState(false);
 
   const { data: ficha, isLoading } = useQuery({ queryKey: ['ficha', id], queryFn: () => fetchFicha(id) });
+  // Regra de quais quadros valem para cada tipo de cliente — vem do backend,
+  // que é quem também a usa para calcular a completude no dashboard.
+  const { data: estrutura } = useQuery({
+    queryKey: ['estrutura-ficha'],
+    queryFn: fetchEstruturaFicha,
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
     if (!ficha) return;
@@ -245,7 +275,7 @@ export function ClienteFormPage() {
     // recalcula quando o quadro está à mostra: para os tipos de cliente que não
     // o exibem, sobrescrever aqui apagaria o que já está gravado, já que os
     // campos de origem nem aparecem na tela.
-    if (quadroVisivel('Dados de contribuintes individuais', ficha?.tipo_cliente)) {
+    if (quadroVisivel('Dados de contribuintes individuais', ficha?.tipo_cliente, estrutura?.quadrosPorTipo)) {
       const derivado = derivarRecolhimento(
         form.inss_tipo_segurado ?? '',
         form.inss_opcao_recolhimento ?? '',
@@ -264,6 +294,16 @@ export function ClienteFormPage() {
       form.data_vencimento_laudo_situacao !== VENCIMENTO_LAUDO_DATA
     ) {
       payload.data_vencimento_laudo = null;
+    }
+
+    // Mesma lógica para as procurações: "Sem procuração" / "Não se aplica"
+    // não convivem com uma data de vencimento.
+    for (const [situacao, data] of [
+      ['venc_procuracao_rfb_situacao', 'venc_procuracao_rfb'],
+      ['venc_procuracao_det_fgts_situacao', 'venc_procuracao_det_fgts'],
+      ['venc_procuracao_econsignado_situacao', 'venc_procuracao_econsignado'],
+    ] as const) {
+      if (form[situacao] && form[situacao] !== PROCURACAO_DATA) payload[data] = null;
     }
 
     payload.sindicatos = sindicatos
@@ -375,8 +415,13 @@ export function ClienteFormPage() {
 
   const cardByTitle = (title: string) => SCALAR_CARDS.find((c) => c.title === title)!;
 
-  /** Cada tipo de cliente usa um subconjunto dos quadros da ficha. */
-  const visivel = (titulo: string) => quadroVisivel(titulo, ficha.tipo_cliente);
+  /**
+   * Cada tipo de cliente usa um subconjunto dos quadros da ficha. A regra vem
+   * do backend; enquanto ela não chega, cai na cópia local para não piscar a
+   * tela nem esconder quadro indevidamente.
+   */
+  const visivel = (titulo: string) =>
+    quadroVisivel(titulo, ficha.tipo_cliente, estrutura?.quadrosPorTipo);
 
   // Função que retorna JSX (NÃO um componente) — evita remontar o subtree a cada
   // tecla, o que fazia os inputs perderem o foco.

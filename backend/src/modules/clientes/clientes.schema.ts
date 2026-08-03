@@ -107,6 +107,10 @@ export const folhaInputSchema = z.object({
   termo_ciencia_sst: text,
   // Procurações
   venc_procuracao_rfb: dateStr,
+  venc_procuracao_rfb_situacao: text,
+  venc_procuracao_det_fgts: dateStr,
+  venc_procuracao_det_fgts_situacao: text,
+  venc_procuracao_econsignado_situacao: text,
   venc_procuracao_det: dateStr,
   venc_procuracao_fgts: dateStr,
   venc_procuracao_econsignado: dateStr,

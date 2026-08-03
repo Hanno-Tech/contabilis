@@ -208,6 +208,49 @@ zerar. O `version` de cada registro alterado é incrementado, então quem estive
 com a ficha aberta recebe `409 Conflict` em vez de sobrescrever a carga sem
 perceber.
 
+### O que a ficha exige de cada cliente
+
+A regra fica em **`backend/src/modules/clientes/ficha.rules.ts`** — fonte única,
+servida em `GET /api/clientes/estrutura-ficha`. O formulário a consome para
+decidir que quadros mostrar e o dashboard usa a mesma definição para calcular a
+completude, então os dois nunca discordam sobre o que é exigível.
+
+Um campo só é cobrado quando as três condições valem:
+
+1. **o quadro aparece para o tipo daquele cliente** — Contribuinte Individual
+   não é cobrado por "possui folha", que nem existe na tela dele;
+2. **é obrigatório de fato** — texto livre e campos sem fonte de dados são
+   marcados como opcionais;
+3. **a dependência está satisfeita** — "operadora do plano" só é exigida de quem
+   concede plano; "código da rotina" só de quem usa rotina automática; a data de
+   vencimento só quando a situação diz que existe uma.
+
+Resultado prático: a exigência caiu de 40 campos para todo mundo a **8 campos**
+(contribuintes) até **37** (empresa normal), e o painel de fichas incompletas
+passou de 505 para ~150 clientes — virou lista de trabalho em vez de ruído.
+
+### Situação × data
+
+Procurações e laudo de SST guardam **duas** informações: a data de vencimento
+(coluna `date`, que alimenta os alertas) e uma **situação** ao lado
+(`Data informada` / `Sem procuração` / `Não se aplica` / `Desobrigada` /
+`Não possui Laudo`). Sem a segunda, "o cliente não tem procuração" ficava
+indistinguível de "ninguém cadastrou ainda", e ~300 clientes jamais sairiam da
+lista de incompletos. No formulário, o campo de data só aparece quando a
+situação é `Data informada`.
+
+Para recuperar essas situações do texto original de uma planilha:
+
+```bash
+cd backend
+npm run backfill:situacoes -- --file "../planilha.xlsx" --dry-run
+npm run backfill:situacoes -- --file "../planilha.xlsx"
+```
+
+O script acha as colunas pelo título, traduz o texto ("Sem Procuração" →
+`Sem procuração`) e **só grava onde a situação está vazia** — nunca sobrescreve
+o que a equipe já preencheu, e nunca mexe nas datas.
+
 ### Campos que as planilhas não cobrem
 
 A carga inicial (`import:clientes`) deixou 16 campos da ficha vazios, por não
@@ -216,16 +259,19 @@ existirem como coluna na planilha de origem. A planilha de complemento
 INSS retido na nota, encargos recolhidos pelo escritório, responsável pelo
 fechamento, código da rotina automática e termo de ciência SST.
 
-Continuam sem fonte, e precisam ser preenchidos pela equipe no próprio sistema:
+Continuam sem fonte. Todos estão marcados como **opcionais** em `ficha.rules.ts`,
+justamente por não haver de onde preenchê-los — a equipe completa aos poucos, e
+o painel de incompletos não os cobra:
 
 - `prazo_contrato_experiencia`, `lancamentos_fixos`, `cargos_insalubres_perigosos`
-- `envio_observacoes`, `data_vencimento_laudo`
-- `venc_procuracao_det` e `venc_procuracao_fgts` (separadas; a planilha traz as
-  duas juntas em `venc_procuracao_det_fgts`)
-- `inss_tipo_segurado`, `inss_salario_contribuicao`
+- `data_meta_entrega_folha`, `observacoes_folha`
+- `inss_tipo_segurado`, `inss_opcao_recolhimento`, `inss_salario_contribuicao`
 
-Enquanto esses campos estiverem vazios, o painel **"empresas com dados
-incompletos"** continua acusando toda a carteira — ele exige a ficha inteira.
+Duas colunas ficaram órfãs e **não aparecem mais no formulário**:
+`venc_procuracao_det` e `venc_procuracao_fgts`, separadas, nunca receberam dado
+— a planilha do setor trata DET e FGTS Digital como uma procuração só, que é o
+que a tela agora mostra (`venc_procuracao_det_fgts`). O campo `envio_observacoes`
+saiu da tela junto com o item 6 das observações do setor.
 
 ## Estrutura da API
 
@@ -236,6 +282,7 @@ incompletos"** continua acusando toda a carteira — ele exige a ficha inteira.
 | POST | `/api/auth/trocar-senha` | Troca a própria senha (exige a senha atual) |
 | GET | `/api/dashboard` | Métricas da tela inicial (KPIs, vencimentos, composição, atividade) |
 | GET | `/api/clientes` | Lista com `?q=`, `?situacao=`, `?responsavel=`, `?regime=` |
+| GET | `/api/clientes/estrutura-ficha` | Quadros, campos e regras de obrigatoriedade da ficha |
 | POST | `/api/clientes` | Cria cliente |
 | GET | `/api/clientes/:id` | Ficha completa |
 | PUT | `/api/clientes/:id` | Atualiza (exige `version`) |
