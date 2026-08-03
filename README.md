@@ -179,14 +179,53 @@ Decisões de mapeamento (combinadas com o setor):
 > formato, o script aborta apontando a coluna divergente em vez de importar
 > dado trocado.
 
-### Campos que a planilha não cobre
+### Complementar dados sem recarregar tudo
 
-A ficha do sistema tem 16 campos que **não existem** como coluna na planilha
-(procurações DET e FGTS separadas, prazo de contrato de experiência,
-lançamentos fixos, particularidades, termo de ciência SST, data de vencimento
-do laudo, entre outros). Eles ficam vazios após a importação e precisam ser
-preenchidos pela equipe no próprio sistema — é por isso que, logo após a carga,
-o painel **"empresas com dados incompletos"** acusa toda a carteira.
+Quando chega uma planilha só com *algumas* colunas para completar a ficha, use o
+atualizador em vez do importador. Ele casa os registros pelo código e
+**sobrepõe apenas as colunas presentes na planilha** — nenhum outro campo é
+tocado, e clientes que não aparecem na planilha ficam como estão.
+
+```bash
+cd backend
+npm run atualiza:clientes -- --file "../planilha.xlsx" --dry-run   # relatório
+npm run atualiza:clientes -- --file "../planilha.xlsx" \
+  --exceto D --backup backups/antes.json                           # aplica
+```
+
+O `--dry-run` mostra, coluna a coluna, quantos valores mudariam, quantos já
+estão iguais e exemplos de *antes → depois* — vale sempre rodar antes.
+
+| Flag | Efeito |
+|---|---|
+| `--colunas D,E,F` | importa somente essas colunas |
+| `--exceto D` | importa todas menos essas |
+| `--backup <arquivo>` | grava o estado anterior dos campos afetados, para desfazer |
+| `--limpar-em-branco` | célula vazia apaga o valor (padrão: célula vazia preserva) |
+
+Célula vazia **preserva** o que já está no banco — o objetivo é completar, não
+zerar. O `version` de cada registro alterado é incrementado, então quem estiver
+com a ficha aberta recebe `409 Conflict` em vez de sobrescrever a carga sem
+perceber.
+
+### Campos que as planilhas não cobrem
+
+A carga inicial (`import:clientes`) deixou 16 campos da ficha vazios, por não
+existirem como coluna na planilha de origem. A planilha de complemento
+(`atualiza:clientes`) preencheu boa parte deles — particularidades do cliente,
+INSS retido na nota, encargos recolhidos pelo escritório, responsável pelo
+fechamento, código da rotina automática e termo de ciência SST.
+
+Continuam sem fonte, e precisam ser preenchidos pela equipe no próprio sistema:
+
+- `prazo_contrato_experiencia`, `lancamentos_fixos`, `cargos_insalubres_perigosos`
+- `envio_observacoes`, `data_vencimento_laudo`
+- `venc_procuracao_det` e `venc_procuracao_fgts` (separadas; a planilha traz as
+  duas juntas em `venc_procuracao_det_fgts`)
+- `inss_tipo_segurado`, `inss_salario_contribuicao`
+
+Enquanto esses campos estiverem vazios, o painel **"empresas com dados
+incompletos"** continua acusando toda a carteira — ele exige a ficha inteira.
 
 ## Estrutura da API
 

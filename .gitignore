@@ -15,7 +15,12 @@ coverage/
 # O modelo versionado é backend/usuarios.example.json.
 usuarios.json
 
-# Planilha real do setor: traz a carteira de clientes e as SENHAS dos portais
-# em texto puro. Nunca versionar — é lida pontualmente pelo import:clientes.
+# Planilhas reais do setor: trazem a carteira de clientes, contatos e — no caso
+# da Visão Geral — as SENHAS dos portais em texto puro. Nunca versionar; são
+# lidas pontualmente pelo import:clientes / atualiza:clientes.
 FRPes-*.xlsx
 *Visão Geral (Setor Pessoal)*.xlsx
+Inclusão de Dados*.xlsx
+
+# Backups do atualiza:clientes — contêm dados de clientes.
+backend/backups/

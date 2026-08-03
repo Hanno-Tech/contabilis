@@ -17,7 +17,8 @@
     "seed:usuarios": "tsx src/db/seed-usuarios.ts",
     "db:reset": "tsx src/db/reset.ts",
     "db:refresh": "tsx src/db/reset.ts && tsx src/db/migrate.ts && tsx src/db/seed.ts",
-    "import:clientes": "tsx src/db/import-clientes.ts"
+    "import:clientes": "tsx src/db/import-clientes.ts",
+    "atualiza:clientes": "tsx src/db/atualiza-clientes.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
