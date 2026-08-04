@@ -25,6 +25,20 @@ export const META_ENTREGA_OPCOES = [
   '3º dia útil',
 ];
 
+/**
+ * Prazo combinado com o cliente para o envio das folhas. Valores tirados do que
+ * a planilha do setor trouxe — o campo tem dado em 502 clientes e aparece no
+ * relatório de fechamento, mas não era editável em tela nenhuma.
+ */
+export const PRAZO_ENVIO_OPCOES = [
+  '1º dia útil',
+  '2º dia útil',
+  '3º dia útil',
+  'Último dia do mês',
+  'Dia 28',
+  'Não se aplica',
+];
+
 // --------------------------------------------------------------------- SST
 export const POSSUI_LAUDO_OPCOES = ['Sim', 'Não', 'Desobrigada'];
 export const EMPRESA_SST_OPCOES = [

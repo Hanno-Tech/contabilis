@@ -77,51 +77,44 @@ async function run() {
 
   console.log(`cliente de teste: ${cliente.codigo} ${cliente.nome}\n`);
 
-  const casos: Array<{ nome: string; alteracao: Record<string, unknown>; esperado: string[] }> = [
+  /**
+   * Cada caso oferece dois valores; usamos o que difere do atual. Sem isso, na
+   * segunda execução o valor já estaria gravado, nada mudaria e o teste passaria
+   * sem exercitar nada.
+   */
+  const casos: Array<{ nome: string; campo: string; valores: [string, string]; junto?: Record<string, unknown> }> = [
+    { nome: 'procurações — data da DET/FGTS', campo: 'venc_procuracao_det_fgts', valores: ['2031-12-31', '2030-06-15'] },
     {
-      nome: 'data da procuração DET/FGTS',
-      alteracao: { venc_procuracao_det_fgts: '2031-12-31' },
-      esperado: ['venc_procuracao_det_fgts'],
+      nome: 'procurações — situação da RFB',
+      campo: 'venc_procuracao_rfb_situacao',
+      valores: ['Não se aplica', 'Sem procuração'],
+      junto: { venc_procuracao_rfb: null },
     },
-    {
-      nome: 'situação da procuração RFB',
-      alteracao: { venc_procuracao_rfb_situacao: 'Não se aplica', venc_procuracao_rfb: null },
-      esperado: ['venc_procuracao_rfb_situacao', 'venc_procuracao_rfb'],
-    },
-    {
-      nome: 'tributárias — fator R',
-      alteracao: { fator_r: 'Sim' },
-      esperado: ['fator_r'],
-    },
-    {
-      nome: 'admissão — concede plano de saúde',
-      alteracao: { concede_plano_saude: 'Sim' },
-      esperado: ['concede_plano_saude'],
-    },
-    {
-      nome: 'fechamento — apura ponto',
-      alteracao: { apura_ponto_escritorio: 'Sim' },
-      esperado: ['apura_ponto_escritorio'],
-    },
+    { nome: 'tributárias — fator R', campo: 'fator_r', valores: ['Sim', 'Não'] },
+    { nome: 'admissão — concede plano de saúde', campo: 'concede_plano_saude', valores: ['Sim', 'Não'] },
+    { nome: 'fechamento — apura ponto', campo: 'apura_ponto_escritorio', valores: ['Sim', 'Não'] },
+    { nome: 'fechamento — prazo de envio', campo: 'prazo_envio_folhas', valores: ['1º dia útil', '2º dia útil'] },
     {
       nome: 'SST — situação do laudo',
-      alteracao: { data_vencimento_laudo_situacao: 'Não possui Laudo', data_vencimento_laudo: null },
-      esperado: ['data_vencimento_laudo_situacao', 'data_vencimento_laudo'],
+      campo: 'data_vencimento_laudo_situacao',
+      valores: ['Não possui Laudo', 'Desobrigada'],
+      junto: { data_vencimento_laudo: null },
     },
-    {
-      nome: 'envio — documento',
-      alteracao: { envio_documento: 'Folhas e Guias' },
-      esperado: ['envio_documento'],
-    },
-    {
-      nome: 'contribuintes — NIT',
-      alteracao: { inss_nit: '12345678901' },
-      esperado: ['inss_nit'],
-    },
+    { nome: 'envio — documento', campo: 'envio_documento', valores: ['Folhas e Guias', 'Guias'] },
+    { nome: 'contribuintes — NIT', campo: 'inss_nit', valores: ['12345678901', '10987654321'] },
   ];
 
   let falhas = 0;
-  for (const caso of casos) {
+  for (const bruto of casos) {
+    const atual = await retrato(cliente.id);
+    const valorAtual = String((atual as Record<string, unknown>)[bruto.campo] ?? '');
+    const novo = valorAtual === bruto.valores[0] ? bruto.valores[1] : bruto.valores[0];
+    const caso = {
+      nome: bruto.nome,
+      alteracao: { [bruto.campo]: novo, ...(bruto.junto ?? {}) },
+      esperado: [bruto.campo, ...Object.keys(bruto.junto ?? {})],
+    };
+
     const antes = await retrato(cliente.id);
     const ficha = (await (await fetch(`${API}/clientes/${cliente.id}/ficha`, { headers: auth })).json()) as Record<string, unknown>;
 
