@@ -271,17 +271,22 @@ export function ClienteFormPage() {
       payload[key] = raw === '' ? null : NUMBER_FIELDS.has(key) ? Number(raw) : raw;
     }
 
-    // Código de recolhimento e alíquota são derivados, não digitados. Só
-    // recalcula quando o quadro está à mostra: para os tipos de cliente que não
-    // o exibem, sobrescrever aqui apagaria o que já está gravado, já que os
-    // campos de origem nem aparecem na tela.
-    if (quadroVisivel('Dados de contribuintes individuais', ficha?.tipo_cliente, estrutura?.quadrosPorTipo)) {
-      const derivado = derivarRecolhimento(
-        form.inss_tipo_segurado ?? '',
-        form.inss_opcao_recolhimento ?? '',
-      );
-      payload.inss_codigo_recolhimento = derivado?.codigo ?? null;
-      payload.inss_aliquota = derivado ? Number(derivado.aliquota) : null;
+    // Código de recolhimento e alíquota são derivados do par (tipo de segurado,
+    // opção de recolhimento). Só sobrescreve quando o par resolve: com um dos
+    // dois em branco — o caso de toda ficha importada, já que a opção de
+    // recolhimento só passou a existir agora — gravar o derivado apagaria o
+    // código e a alíquota que vieram da planilha. Nesse caso deixamos os campos
+    // fora do payload, e o UPDATE parcial preserva o que está no banco.
+    const derivado = derivarRecolhimento(
+      form.inss_tipo_segurado ?? '',
+      form.inss_opcao_recolhimento ?? '',
+    );
+    if (derivado) {
+      payload.inss_codigo_recolhimento = derivado.codigo;
+      payload.inss_aliquota = Number(derivado.aliquota);
+    } else {
+      delete payload.inss_codigo_recolhimento;
+      delete payload.inss_aliquota;
     }
 
     // A data do laudo só faz sentido quando a situação é "Data informada";

@@ -19,7 +19,8 @@
     "db:refresh": "tsx src/db/reset.ts && tsx src/db/migrate.ts && tsx src/db/seed.ts",
     "import:clientes": "tsx src/db/import-clientes.ts",
     "atualiza:clientes": "tsx src/db/atualiza-clientes.ts",
-    "backfill:situacoes": "tsx src/db/backfill-situacoes.ts"
+    "backfill:situacoes": "tsx src/db/backfill-situacoes.ts",
+    "verifica:salvamento": "tsx src/db/verifica-salvamento.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

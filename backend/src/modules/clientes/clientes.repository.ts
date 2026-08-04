@@ -175,9 +175,8 @@ const FOLHA_COLUMNS = [
   'cliente_folha.venc_procuracao_rfb_situacao',
   'cliente_folha.venc_procuracao_det_fgts',
   'cliente_folha.venc_procuracao_det_fgts_situacao',
-  'cliente_folha.venc_procuracao_econsignado_situacao',
-  'cliente_folha.venc_procuracao_det_fgts',
   'cliente_folha.venc_procuracao_econsignado',
+  'cliente_folha.venc_procuracao_econsignado_situacao',
   'cliente_folha.emails_notificacao_det',
   'cliente_folha.inss_tipo_segurado',
   'cliente_folha.inss_nit',
@@ -198,56 +197,132 @@ const FOLHA_COLUMNS = [
   'cliente_folha.version',
 ] as const;
 
-/** Colunas escalares da folha a partir da entrada validada. */
-function folhaColumns(input: FolhaInput) {
+/**
+ * Colunas de `cliente_folha` que a ficha edita.
+ *
+ * A lista existe para o UPDATE ser **parcial**. Antes, as colunas eram montadas
+ * uma a uma com `input.x ?? null`, o que transformava "campo ausente do
+ * payload" em "apagar a coluna": toda coluna que o formulário não desenhasse
+ * era zerada a cada salvamento — `prazo_envio_folhas` (preenchido em 502 dos
+ * 505 clientes) entre elas.
+ */
+const COLUNAS_FOLHA_EDITAVEIS = [
+  // Folha de pagamento
+  'possui_folha',
+  'forma_pagamento_salarios',
+  'apura_ponto_escritorio',
+  'realiza_lancamentos',
+  'concede_plano_saude',
+  'plano_operadora',
+  'plano_beneficiarios',
+  'fator_r',
+  'atividade_concomitante',
+  'construcao_civil',
+  'cprb',
+  'encargos_recolhidos_escritorio',
+  'observacoes_folha',
+  'prazo_envio_folhas',
+  // Tributárias
+  'inss_retido_nf',
+  // Fechamento / rotinas
+  'folha_rotina_automatica',
+  'responsavel_fechamento_folha',
+  'codigo_rotina_automatica',
+  'data_meta_entrega_folha',
+  // Admissão
+  'prazo_contrato_experiencia',
+  'lancamentos_fixos',
+  'particularidades_cliente',
+  'relatorios_admissao',
+  'cargos_insalubres_perigosos',
+  // Envio de documentos
+  'envio_meio',
+  'envio_documento',
+  'envio_contato',
+  'envio_observacoes',
+  // SST
+  'possui_laudos_sst',
+  'empresa_responsavel_sst',
+  'data_vencimento_laudo',
+  'data_vencimento_laudo_situacao',
+  'termo_ciencia_sst',
+  // Procurações
+  'venc_procuracao_rfb',
+  'venc_procuracao_rfb_situacao',
+  'venc_procuracao_det_fgts',
+  'venc_procuracao_det_fgts_situacao',
+  'venc_procuracao_econsignado',
+  'venc_procuracao_econsignado_situacao',
+  'venc_procuracao_det',
+  'venc_procuracao_fgts',
+  'emails_notificacao_det',
+  // INSS autônomo/facultativo
+  'inss_tipo_segurado',
+  'inss_nit',
+  'inss_codigo_recolhimento',
+  'inss_opcao_recolhimento',
+  'inss_salario_contribuicao',
+  'inss_aliquota',
+] as const satisfies readonly (keyof FolhaInput)[];
+
+/** Colunas `numeric` — chegam como número e vão para o banco como string. */
+const COLUNAS_NUMERICAS = new Set<string>(['inss_salario_contribuicao', 'inss_aliquota']);
+
+/**
+ * Colunas escalares da folha a partir da entrada validada, **só as que vieram
+ * no payload**. Campo ausente (`undefined`) não é tocado; `null` explícito
+ * continua limpando, que é como o formulário zera um campo.
+ */
+function folhaColumns(input: FolhaInput): Record<string, unknown> {
+  const cols: Record<string, unknown> = {};
+
+  for (const coluna of COLUNAS_FOLHA_EDITAVEIS) {
+    const valor = input[coluna];
+    if (valor === undefined) continue;
+    cols[coluna] = COLUNAS_NUMERICAS.has(coluna)
+      ? numToStr(valor as number | null)
+      : valor;
+  }
+
+  return cols;
+}
+
+/**
+ * Espelho do 1º sindicato/convenção em `cliente_folha` (mantém a listagem e o
+ * dashboard funcionando sem join).
+ *
+ * Só é reescrito quando a lista de sindicatos vem no payload **e** difere da
+ * gravada. Sem essa comparação, salvar qualquer outro campo da ficha apagaria o
+ * espelho dos clientes importados — eles vieram com o espelho preenchido e
+ * nenhuma linha em `cliente_sindicatos`, então a lista chega vazia e zeraria o
+ * valor legado.
+ */
+async function espelhoSindicato(
+  trx: typeof db,
+  clienteId: string,
+  sindicatos: FolhaInput['sindicatos'],
+): Promise<Record<string, unknown>> {
+  if (sindicatos === undefined) return {};
+
+  const atuais = await trx
+    .selectFrom('cliente_sindicatos')
+    .select(['sindicato', 'convencao_aplicavel_nome'])
+    .where('cliente_id', '=', clienteId)
+    .orderBy('ordem')
+    .execute();
+
+  const inalterada =
+    atuais.length === sindicatos.length &&
+    atuais.every(
+      (a, i) =>
+        a.sindicato === (sindicatos[i].sindicato ?? null) &&
+        a.convencao_aplicavel_nome === (sindicatos[i].convencao_aplicavel_nome ?? null),
+    );
+  if (inalterada) return {};
+
   return {
-    possui_folha: input.possui_folha ?? null,
-    forma_pagamento_salarios: input.forma_pagamento_salarios ?? null,
-    apura_ponto_escritorio: input.apura_ponto_escritorio ?? null,
-    realiza_lancamentos: input.realiza_lancamentos ?? null,
-    concede_plano_saude: input.concede_plano_saude ?? null,
-    plano_operadora: input.plano_operadora ?? null,
-    plano_beneficiarios: input.plano_beneficiarios ?? null,
-    fator_r: input.fator_r ?? null,
-    atividade_concomitante: input.atividade_concomitante ?? null,
-    construcao_civil: input.construcao_civil ?? null,
-    cprb: input.cprb ?? null,
-    encargos_recolhidos_escritorio: input.encargos_recolhidos_escritorio ?? null,
-    observacoes_folha: input.observacoes_folha ?? null,
-    prazo_envio_folhas: input.prazo_envio_folhas ?? null,
-    inss_retido_nf: input.inss_retido_nf ?? null,
-    folha_rotina_automatica: input.folha_rotina_automatica ?? null,
-    responsavel_fechamento_folha: input.responsavel_fechamento_folha ?? null,
-    codigo_rotina_automatica: input.codigo_rotina_automatica ?? null,
-    data_meta_entrega_folha: input.data_meta_entrega_folha ?? null,
-    prazo_contrato_experiencia: input.prazo_contrato_experiencia ?? null,
-    lancamentos_fixos: input.lancamentos_fixos ?? null,
-    particularidades_cliente: input.particularidades_cliente ?? null,
-    relatorios_admissao: input.relatorios_admissao ?? null,
-    cargos_insalubres_perigosos: input.cargos_insalubres_perigosos ?? null,
-    envio_meio: input.envio_meio ?? null,
-    envio_documento: input.envio_documento ?? null,
-    envio_contato: input.envio_contato ?? null,
-    envio_observacoes: input.envio_observacoes ?? null,
-    possui_laudos_sst: input.possui_laudos_sst ?? null,
-    empresa_responsavel_sst: input.empresa_responsavel_sst ?? null,
-    data_vencimento_laudo: input.data_vencimento_laudo ?? null,
-    data_vencimento_laudo_situacao: input.data_vencimento_laudo_situacao ?? null,
-    termo_ciencia_sst: input.termo_ciencia_sst ?? null,
-    venc_procuracao_rfb: input.venc_procuracao_rfb ?? null,
-    venc_procuracao_det: input.venc_procuracao_det ?? null,
-    venc_procuracao_fgts: input.venc_procuracao_fgts ?? null,
-    venc_procuracao_econsignado: input.venc_procuracao_econsignado ?? null,
-    emails_notificacao_det: input.emails_notificacao_det ?? null,
-    inss_tipo_segurado: input.inss_tipo_segurado ?? null,
-    inss_nit: input.inss_nit ?? null,
-    inss_codigo_recolhimento: input.inss_codigo_recolhimento ?? null,
-    inss_opcao_recolhimento: input.inss_opcao_recolhimento ?? null,
-    inss_salario_contribuicao: numToStr(input.inss_salario_contribuicao),
-    inss_aliquota: numToStr(input.inss_aliquota),
-    // Espelho do 1º sindicato/convenção (mantém dashboard/lista funcionando).
-    sindicato: input.sindicatos?.[0]?.sindicato ?? null,
-    convencao_aplicavel_nome: input.sindicatos?.[0]?.convencao_aplicavel_nome ?? null,
+    sindicato: sindicatos[0]?.sindicato ?? null,
+    convencao_aplicavel_nome: sindicatos[0]?.convencao_aplicavel_nome ?? null,
   };
 }
 
@@ -290,9 +365,10 @@ export async function updateFolha(
   input: FolhaInput,
 ): Promise<number | null> {
   return db.transaction().execute(async (trx) => {
+    const espelho = await espelhoSindicato(trx as typeof db, id, input.sindicatos);
     const updated = await trx
       .updateTable('cliente_folha')
-      .set({ ...folhaColumns(input), version: expectedVersion + 1 })
+      .set({ ...folhaColumns(input), ...espelho, version: expectedVersion + 1 })
       .where('cliente_id', '=', id)
       .where('version', '=', expectedVersion)
       .returning('version')
