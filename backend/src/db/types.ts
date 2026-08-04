@@ -246,6 +246,23 @@ export interface UsuariosTable {
   updated_at: Generated<Timestamp>;
 }
 
+/**
+ * Cadastro de entidades externas: sindicatos e empresas de SST. Mesmos campos
+ * para os dois, distinguidos por `tipo`.
+ */
+export interface EntidadesTable {
+  id: Generated<string>;
+  tipo: string; // 'Sindicato' | 'Empresa de SST'
+  codigo: string | null;
+  nome: string;
+  cnpj: string | null;
+  contato: string | null;
+  ativo: Generated<boolean>;
+  version: Generated<number>;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface Database {
   usuarios: UsuariosTable;
   clientes: ClientesTable;
@@ -257,4 +274,5 @@ export interface Database {
   pendencias: PendenciasTable;
   eventos_futuros: EventosFuturosTable;
   senhas_setor: SenhasSetorTable;
+  entidades: EntidadesTable;
 }

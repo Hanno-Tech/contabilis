@@ -7,6 +7,7 @@ import type {
   ClienteListItem,
   CredencialRevelada,
   EventoFuturo,
+  EntidadeCadastro,
   EstruturaFicha,
   Filtros,
   Ocorrencia,
@@ -274,4 +275,29 @@ export async function listRelatorios() {
 export async function fetchRelatorio(key: string) {
   const { data } = await api.get<Relatorio>(`/relatorios/${key}`);
   return data;
+}
+
+// ------------------------------------------- Sindicatos e empresas de SST
+export async function listEntidades(params: { q?: string; tipo?: string } = {}) {
+  const { data } = await api.get<EntidadeCadastro[]>('/entidades', { params });
+  return data;
+}
+
+export async function fetchEntidade(id: string) {
+  const { data } = await api.get<EntidadeCadastro>(`/entidades/${id}`);
+  return data;
+}
+
+export async function createEntidade(payload: Record<string, unknown>) {
+  const { data } = await api.post<EntidadeCadastro>('/entidades', payload);
+  return data;
+}
+
+export async function updateEntidade(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<EntidadeCadastro>(`/entidades/${id}`, payload);
+  return data;
+}
+
+export async function deleteEntidade(id: string) {
+  await api.delete(`/entidades/${id}`);
 }

@@ -9,6 +9,7 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BadgeIcon from '@mui/icons-material/Badge';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
+import ApartmentIcon from '@mui/icons-material/Apartment';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LockResetIcon from '@mui/icons-material/LockReset';
@@ -59,6 +60,7 @@ const navEntries: NavEntry[] = [
       { to: '/pendencias', label: 'Pendências', icon: <PlaylistAddCheckIcon fontSize="small" /> },
       { to: '/eventos-futuros', label: 'Eventos futuros', icon: <EventNoteIcon fontSize="small" /> },
       { to: '/senhas-setor', label: 'Senhas do setor', icon: <VpnKeyOutlinedIcon fontSize="small" /> },
+      { to: '/entidades', label: 'Sindicatos e SST', icon: <ApartmentIcon fontSize="small" /> },
       { to: '/relatorios', label: 'Relatórios', icon: <AssessmentOutlinedIcon fontSize="small" /> },
       { to: '/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
     ],

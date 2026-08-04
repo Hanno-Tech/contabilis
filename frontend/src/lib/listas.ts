@@ -216,3 +216,6 @@ export function quadroVisivel(
   const permitidos = quadrosPorTipo[tipo];
   return permitidos ? permitidos.includes(quadro) : true;
 }
+
+/** Tipos do cadastro de entidades externas (espelha TIPOS_ENTIDADE do backend). */
+export const TIPOS_ENTIDADE = ['Sindicato', 'Empresa de SST'] as const;

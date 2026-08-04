@@ -324,3 +324,21 @@ export interface Relatorio {
 }
 
 
+
+/**
+ * Cadastro de sindicatos e empresas de SST (tabela `entidades`).
+ * Não confundir com o tipo `Entidade` acima, que é o alvo de uma alteração na
+ * trilha de auditoria.
+ */
+export interface EntidadeCadastro {
+  id: string;
+  tipo: string;
+  codigo: string | null;
+  nome: string;
+  cnpj: string | null;
+  contato: string | null;
+  ativo: boolean;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}

@@ -46,5 +46,16 @@ export function apiErrorMessage(error: unknown, fallback = 'Ocorreu um erro.'): 
   return fallback;
 }
 
+/**
+ * Conflito de edição concorrente (locking otimista — RNF-01).
+ *
+ * Checa o `code`, não só o status: violação de unicidade (código de cliente
+ * repetido, por exemplo) também responde 409, e olhar só o status fazia a tela
+ * dizer "alterado por outro usuário" para um problema que não é esse. Nesse
+ * caso a mensagem do servidor, que descreve o problema real, é que deve
+ * aparecer.
+ */
 export const isConflict = (error: unknown): boolean =>
-  axios.isAxiosError(error) && error.response?.status === 409;
+  axios.isAxiosError(error) &&
+  error.response?.status === 409 &&
+  error.response?.data?.error?.code !== 'UNIQUE_VIOLATION';
