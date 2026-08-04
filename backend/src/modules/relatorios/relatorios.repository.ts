@@ -1,4 +1,5 @@
 import { db } from '../../db/index.js';
+import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 
 /**
  * Relatórios do Setor Pessoal. Todos devolvem o mesmo formato uniforme
@@ -46,25 +47,6 @@ const vazio = (v: unknown) => v === null || v === undefined || String(v).trim() 
 
 // ---------------------------------------------------- Completude do cadastro
 
-/**
- * Campos essenciais de identidade do cliente — os que são preenchidos na tela
- * de cadastro/edição de "Informações Gerais". Reutilizado pelo dashboard (bloco
- * "empresas com dados incompletos") e pelo relatório de campos não preenchidos.
- * Só entram campos editáveis nesse fluxo, para que o "completar" leve a uma tela
- * onde eles realmente existam.
- */
-export const CAMPOS_OBRIGATORIOS: Array<{ campo: string; label: string }> = [
-  { campo: 'cnpj', label: 'CNPJ' },
-  { campo: 'tipo_cliente', label: 'Tipo de cliente' },
-  { campo: 'regime_tributacao', label: 'Regime de tributação' },
-  { campo: 'responsavel', label: 'Responsável' },
-];
-
-/** Rótulos dos campos essenciais que estão em branco em um registro cliente+folha. */
-export function camposFaltantes(row: Record<string, unknown>): string[] {
-  return CAMPOS_OBRIGATORIOS.filter((c) => vazio(row[c.campo])).map((c) => c.label);
-}
-
 /** Consulta base: clientes com os dados de folha. */
 function clientesComFolha() {
   return db
@@ -75,10 +57,11 @@ function clientesComFolha() {
 // --------------------------------------------------------------- Procurações
 
 const PROCURACOES: Array<{ campo: string; tipo: string }> = [
+  // `venc_procuracao_det` e `venc_procuracao_fgts` ficaram de fora: são colunas
+  // órfãs, nunca preenchidas. A planilha do setor trata DET e FGTS Digital como
+  // uma procuração só, que é o que a ficha edita.
   { campo: 'venc_procuracao_rfb', tipo: 'RFB' },
-  { campo: 'venc_procuracao_det', tipo: 'DET' },
   { campo: 'venc_procuracao_det_fgts', tipo: 'DET/FGTS' },
-  { campo: 'venc_procuracao_fgts', tipo: 'FGTS Digital' },
   { campo: 'venc_procuracao_econsignado', tipo: 'e-Consignado' },
 ];
 
@@ -225,23 +208,31 @@ export async function relProcuracoesVencidas(): Promise<Relatorio> {
 
 /** 4 — Campos não preenchidos (clientes com pelo menos um campo essencial vazio). */
 export async function relCamposNaoPreenchidos(): Promise<Relatorio> {
+  // Mesma regra do painel de fichas incompletas: só cobra o que se aplica ao
+  // tipo daquele cliente e cuja dependência está satisfeita.
+  const camposCliente = [
+    ...new Set(TODOS_CAMPOS.filter((c) => c.origem === 'cliente').map((c) => c.campo)),
+  ];
+  const camposFolha = [
+    ...new Set(TODOS_CAMPOS.filter((c) => c.origem === 'folha').map((c) => c.campo)),
+  ];
+
   const rows = await clientesComFolha()
     .select([
       'clientes.codigo',
       'clientes.nome',
-      'clientes.cnpj',
-      'clientes.tipo_cliente',
-      'clientes.regime_tributacao',
-      'clientes.responsavel',
-      'cliente_folha.possui_folha',
-      'cliente_folha.forma_pagamento_salarios',
-      'cliente_folha.responsavel_fechamento_folha',
+      ...camposCliente.map((c) => `clientes.${c}` as never),
+      ...camposFolha.map((c) => `cliente_folha.${c}` as never),
     ])
     .orderBy('clientes.nome')
     .execute();
 
   const linhas = rows
-    .map((r) => ({ codigo: r.codigo, nome: r.nome, faltantes: camposFaltantes(r) }))
+    .map((r) => ({
+      codigo: (r as { codigo: number }).codigo,
+      nome: (r as { nome: string }).nome,
+      faltantes: camposFaltantes(r as unknown as Record<string, unknown>).map((c) => c.rotulo),
+    }))
     .filter((r) => r.faltantes.length > 0)
     .map((r) => ({ codigo: r.codigo, nome: r.nome, campos: r.faltantes.join(', ') }));
 
