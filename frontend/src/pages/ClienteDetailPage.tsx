@@ -20,8 +20,10 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
-import { fetchFicha, revelarCredenciais } from '../api/resources';
+import { fetchEstruturaFicha, fetchFicha, revelarCredenciais } from '../api/resources';
 import { ReadField, SectionCard, SituacaoChip, formatDate, formatMoney } from '../components/ui';
+import { SCALAR_CARDS } from '../lib/ficha-campos';
+import { quadroVisivel } from '../lib/listas';
 import type { ClienteFolha, CredencialRevelada } from '../types';
 
 const TIPO_LABEL: Record<string, string> = {
@@ -38,6 +40,12 @@ export function ClienteDetailPage() {
   const { data: cliente, isLoading, error } = useQuery({
     queryKey: ['ficha', id],
     queryFn: () => fetchFicha(id),
+  });
+  // Regra de quadros por tipo de cliente — mesma fonte que o formulário usa.
+  const { data: estrutura } = useQuery({
+    queryKey: ['estrutura-ficha'],
+    queryFn: fetchEstruturaFicha,
+    staleTime: Infinity,
   });
 
   // Revelação de senhas (uma vez, compartilhada pelos quadros SENHAS e Empregador Doméstico).
@@ -71,6 +79,51 @@ export function ClienteDetailPage() {
   const folha = cliente.folha ?? EMPTY_FOLHA;
   const empregado = cliente.credenciais.find((c) => c.tipo === 'empregado_domestico');
   const orgaos = cliente.credenciais.filter((c) => c.tipo !== 'empregado_domestico');
+
+  /** Cada tipo de cliente usa um subconjunto dos quadros — mesma regra do formulário. */
+  const visivel = (titulo: string) =>
+    quadroVisivel(titulo, cliente.tipo_cliente, estrutura?.quadrosPorTipo);
+
+  /** Valores como texto, para avaliar os `showIf` do catálogo. */
+  const comoTexto = Object.fromEntries(
+    Object.entries(folha as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]),
+  );
+
+  /**
+   * Renderiza um quadro a partir do catálogo compartilhado com o formulário,
+   * para as duas telas nunca mais divergirem sobre quais campos existem.
+   */
+  const quadroEscalar = (titulo: string, extras?: React.ReactNode) => {
+    if (!visivel(titulo)) return null;
+    const card = SCALAR_CARDS.find((c) => c.title === titulo);
+    if (!card) return null;
+    return (
+      <SectionCard title={titulo}>
+        <Grid container spacing={2}>
+          {extras}
+          {card.fields.map((f) => {
+            if (f.showIf && !f.showIf(comoTexto)) return null;
+            const bruto = (folha as Record<string, unknown>)[f.key] as string | null;
+            const valor =
+              f.type === 'date'
+                ? formatDate(bruto)
+                : f.key === 'inss_salario_contribuicao'
+                  ? bruto && formatMoney(bruto)
+                  : bruto;
+            return (
+              <ReadField
+                key={f.key}
+                label={f.label}
+                value={valor}
+                wide={f.wide}
+                pre={f.type === 'multiline'}
+              />
+            );
+          })}
+        </Grid>
+      </SectionCard>
+    );
+  };
 
   return (
     <Box>
@@ -118,138 +171,62 @@ export function ClienteDetailPage() {
         </Grid>
       </SectionCard>
 
-      {/* 2. Informações tributárias */}
-      <SectionCard title="Informações tributárias">
-        <Grid container spacing={2}>
-          <ReadField label="Regime de tributação" value={cliente.regime_tributacao} />
-          <ReadField label='Fator "R"' value={folha.fator_r} />
-          <ReadField label="Atividades concomitantes" value={folha.atividade_concomitante} />
-          <ReadField label="INSS retido na NF?" value={folha.inss_retido_nf} />
-          <ReadField label="Construção civil?" value={folha.construcao_civil} />
-          <ReadField label="CPRB?" value={folha.cprb} />
-          <ReadField label="Encargos recolhidos pelo escritório" value={folha.encargos_recolhidos_escritorio} wide pre />
-        </Grid>
-      </SectionCard>
+      {/* Quadros escalares — renderizados do catálogo compartilhado com o formulário */}
+      {quadroEscalar(
+        'Informações tributárias',
+        <ReadField key="regime" label="Regime de tributação" value={cliente.regime_tributacao} />,
+      )}
+      {quadroEscalar('Admissão')}
+      {quadroEscalar('Fechamento da folha')}
 
-      {/* 3. Admissão */}
-      <SectionCard title="Admissão">
-        <Grid container spacing={2}>
-          <ReadField label="Concede plano de saúde?" value={folha.concede_plano_saude} />
-          <ReadField label="Operadora do plano" value={folha.plano_operadora} />
-          <ReadField label="Beneficiários do plano" value={folha.plano_beneficiarios} />
-          <ReadField label="Forma de pagamento dos salários" value={folha.forma_pagamento_salarios} />
-          <ReadField label="Prazo do contrato de experiência" value={folha.prazo_contrato_experiencia} />
-          <ReadField label="Possui cargos insalubres ou perigosos?" value={folha.cargos_insalubres_perigosos} />
-          <ReadField label="Possui lançamentos fixos?" value={folha.lancamentos_fixos} wide pre />
-          <ReadField label="Relatórios admissionais" value={folha.relatorios_admissao} wide pre />
-          <ReadField label="Especificidades do cliente" value={folha.particularidades_cliente} wide pre />
-        </Grid>
-      </SectionCard>
+      {/* Informações sindicais (lista própria) */}
+      {visivel('Informações sindicais') && (
+        <SectionCard title="Informações sindicais">
+          {cliente.sindicatos.length === 0 ? (
+            <Typography variant="body2" color="text.disabled">
+              Nenhum sindicato cadastrado.
+            </Typography>
+          ) : (
+            cliente.sindicatos.map((s, i) => (
+              <Box key={s.id ?? i}>
+                {i > 0 && <Divider sx={{ my: 2 }} />}
+                <Grid container spacing={2}>
+                  <ReadField label="Filiação sindical" value={s.sindicato} wide />
+                  <ReadField label="Situação da convenção" value={s.situacao_convencao} />
+                  <ReadField label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao} />
+                </Grid>
+              </Box>
+            ))
+          )}
+        </SectionCard>
+      )}
 
-      {/* 4. Rescisão (a definir) */}
-      <SectionCard title="Rescisão">
-        <Typography variant="body2" color="text.disabled">
-          Campos a definir.
-        </Typography>
-      </SectionCard>
+      {quadroEscalar('Informações sobre SST')}
+      {quadroEscalar('Forma de envio dos documentos')}
+      {quadroEscalar('Dados de contribuintes individuais')}
 
-      {/* 5. Fechamento da folha */}
-      <SectionCard title="Fechamento da folha">
-        <Grid container spacing={2}>
-          <ReadField label="Possui folha?" value={folha.possui_folha} />
-          <ReadField label="Responsável pelo fechamento da folha" value={folha.responsavel_fechamento_folha} />
-          <ReadField label="Gera folha e relatórios pela rotina automática?" value={folha.folha_rotina_automatica} />
-          <ReadField label="Código da rotina automática" value={folha.codigo_rotina_automatica} />
-          <ReadField label="Meta de entrega da folha" value={folha.data_meta_entrega_folha} />
-          <ReadField label="Apura o ponto pelo escritório?" value={folha.apura_ponto_escritorio} />
-          <ReadField label="Realiza lançamentos?" value={folha.realiza_lancamentos} />
-          <ReadField label="Informações importantes no fechamento da folha" value={folha.observacoes_folha} wide pre />
-        </Grid>
-      </SectionCard>
+      {/* Empregador doméstico (credenciais) */}
+      {visivel('Dados do empregador doméstico') && (
+        <SectionCard
+          title="Dados do empregador doméstico"
+          icon={<LockIcon fontSize="small" color="warning" />}
+          action={<RevelarButton revelado={!!revelado} revelando={revelando} onRevelar={revelar} disabled={!empregado} />}
+        >
+          {revelarErro && <Alert severity="error" sx={{ mb: 2 }}>{revelarErro}</Alert>}
+          {!empregado ? (
+            <Typography variant="body2" color="text.disabled">
+              Sem dados cadastrados.
+            </Typography>
+          ) : (
+            <Grid container spacing={2}>
+              <ReadField label="Usuário e-social" value={empregado.usuario} />
+              <SecretField label="Senha" value={revMap.get(empregado.id)?.senha ?? null} masked={!revelado && empregado.tem_senha} />
+            </Grid>
+          )}
+        </SectionCard>
+      )}
 
-      {/* 6. Informações sindicais (vários) */}
-      <SectionCard title="Informações sindicais">
-        {cliente.sindicatos.length === 0 ? (
-          <Typography variant="body2" color="text.disabled">
-            Nenhum sindicato cadastrado.
-          </Typography>
-        ) : (
-          cliente.sindicatos.map((s, i) => (
-            <Box key={s.id ?? i}>
-              {i > 0 && <Divider sx={{ my: 2 }} />}
-              <Grid container spacing={2}>
-                <ReadField label="Sindicato" value={s.sindicato} wide />
-                <ReadField label="Convenção aplicável" value={s.convencao_aplicavel_nome} />
-                <ReadField label="Situação da convenção" value={s.situacao_convencao} />
-                <ReadField label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao} />
-              </Grid>
-            </Box>
-          ))
-        )}
-      </SectionCard>
-
-      {/* 7. SST */}
-      <SectionCard title="Informações sobre SST">
-        <Grid container spacing={2}>
-          <ReadField label="Possui laudo de SST?" value={folha.possui_laudos_sst} />
-          <ReadField label="Empresa responsável" value={folha.empresa_responsavel_sst} />
-          <ReadField label="Vencimento do laudo" value={formatDate(folha.data_vencimento_laudo)} />
-          <ReadField label="Termo de ciência enviado (ausência de laudos)?" value={folha.termo_ciencia_sst} />
-        </Grid>
-      </SectionCard>
-
-      {/* 8. Forma de envio dos documentos */}
-      <SectionCard title="Forma de envio dos documentos">
-        <Grid container spacing={2}>
-          <ReadField label="Forma de envio" value={folha.envio_meio} />
-          <ReadField label="Contato" value={folha.envio_contato} wide pre />
-          <ReadField label="Observações" value={folha.envio_observacoes} wide pre />
-        </Grid>
-      </SectionCard>
-
-      {/* 9. Dados de contribuintes individuais */}
-      <SectionCard title="Dados de contribuintes individuais">
-        <Grid container spacing={2}>
-          <ReadField label="NIT" value={folha.inss_nit} />
-          <ReadField label="Tipo de segurado" value={folha.inss_tipo_segurado} />
-          <ReadField label="Código de recolhimento" value={folha.inss_codigo_recolhimento} />
-          <ReadField
-            label="Salário de contribuição"
-            value={folha.inss_salario_contribuicao ? formatMoney(folha.inss_salario_contribuicao) : null}
-          />
-          <ReadField label="Alíquota" value={folha.inss_aliquota} />
-        </Grid>
-      </SectionCard>
-
-      {/* 10. Empregador doméstico */}
-      <SectionCard
-        title="Dados do empregador doméstico"
-        icon={<LockIcon fontSize="small" color="warning" />}
-        action={<RevelarButton revelado={!!revelado} revelando={revelando} onRevelar={revelar} disabled={!empregado} />}
-      >
-        {revelarErro && <Alert severity="error" sx={{ mb: 2 }}>{revelarErro}</Alert>}
-        {!empregado ? (
-          <Typography variant="body2" color="text.disabled">
-            Sem dados cadastrados.
-          </Typography>
-        ) : (
-          <Grid container spacing={2}>
-            <ReadField label="Usuário e-social" value={empregado.usuario} />
-            <SecretField label="Senha" value={revMap.get(empregado.id)?.senha ?? null} masked={!revelado && empregado.tem_senha} />
-          </Grid>
-        )}
-      </SectionCard>
-
-      {/* 11. Procurações */}
-      <SectionCard title="Procurações">
-        <Grid container spacing={2}>
-          <ReadField label="Procuração RFB" value={formatDate(folha.venc_procuracao_rfb)} />
-          <ReadField label="Procuração DET" value={formatDate(folha.venc_procuracao_det)} />
-          <ReadField label="Procuração FGTS Digital" value={formatDate(folha.venc_procuracao_fgts)} />
-          <ReadField label="Procuração e-Consignado" value={formatDate(folha.venc_procuracao_econsignado)} />
-          <ReadField label="E-mails que recebem o DET" value={folha.emails_notificacao_det} wide />
-        </Grid>
-      </SectionCard>
+      {quadroEscalar('Procurações')}
 
       {/* 12. Senhas (por órgão) */}
       <SectionCard
