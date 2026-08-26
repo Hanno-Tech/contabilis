@@ -43,8 +43,6 @@ function diasAte(dateStr: string): number {
   return Math.round((due.getTime() - hoje.getTime()) / 86_400_000);
 }
 
-const vazio = (v: unknown) => v === null || v === undefined || String(v).trim() === '';
-
 // ---------------------------------------------------- Completude do cadastro
 
 /** Consulta base: clientes com os dados de folha. */

@@ -188,8 +188,21 @@ export function quadroVisivel(quadro: string, tipoCliente: string | null | undef
 
 // ------------------------------------------------------------- completude
 
-const vazio = (v: unknown): boolean =>
-  v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+/**
+ * Marcadores que a planilha usa para "não respondi" e que, ao serem importados,
+ * ficaram indistinguíveis de resposta. Só traços, pontos e zero — negações
+ * ("Não se aplica", "Não possui", "Sem procuração") são respostas legítimas,
+ * são opções dos selects da ficha e continuam contando como preenchidas.
+ */
+const PLACEHOLDERS = /^(?:[-–—.\s]+|0+(?:[.,]0+)?)$/;
+
+const vazio = (v: unknown): boolean => {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'number') return v === 0;
+  if (typeof v !== 'string') return false;
+  const s = v.trim();
+  return s === '' || PLACEHOLDERS.test(s);
+};
 
 /**
  * Campos que faltam numa ficha, considerando o tipo do cliente e as
