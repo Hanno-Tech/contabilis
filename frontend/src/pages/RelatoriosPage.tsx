@@ -34,6 +34,22 @@ function parseDataBr(value: unknown): string | null {
   return null;
 }
 
+/**
+ * Agrupa colunas vizinhas que compartilham o mesmo `grupo`, para desenhar a
+ * primeira linha do cabeçalho (equivalente às células mescladas da planilha).
+ * Devolve `null` quando nenhuma coluna tem grupo.
+ */
+function gruposDeColunas(rel: Relatorio): Array<{ grupo?: string; span: number }> | null {
+  if (!rel.colunas.some((c) => c.grupo)) return null;
+  const faixas: Array<{ grupo?: string; span: number }> = [];
+  for (const c of rel.colunas) {
+    const ultima = faixas[faixas.length - 1];
+    if (ultima && c.grupo && ultima.grupo === c.grupo) ultima.span += 1;
+    else faixas.push({ grupo: c.grupo, span: 1 });
+  }
+  return faixas;
+}
+
 /** Colunas cujos valores parecem datas (para habilitar o filtro de período). */
 function colunasDeData(rel: Relatorio): string[] {
   return rel.colunas
@@ -86,6 +102,7 @@ export function RelatoriosPage() {
   });
 
   const colsData = useMemo(() => (relatorio ? colunasDeData(relatorio) : []), [relatorio]);
+  const grupos = useMemo(() => (relatorio ? gruposDeColunas(relatorio) : null), [relatorio]);
   const filtradas = useMemo(
     () => (relatorio ? filtrarLinhas(relatorio, busca, dataDe, dataAte, colsData) : []),
     [relatorio, busca, dataDe, dataAte, colsData],
@@ -195,6 +212,26 @@ export function RelatoriosPage() {
             {filtradas.length > 0 ? (
               <Table size="small">
                 <TableHead>
+                  {grupos && (
+                    <TableRow>
+                      {grupos.map((g, i) => (
+                        <TableCell
+                          key={i}
+                          colSpan={g.span}
+                          align={g.span > 1 ? 'center' : 'left'}
+                          sx={{
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            borderRight: g.grupo ? '1px solid' : undefined,
+                            borderRightColor: 'divider',
+                            bgcolor: (t) => alpha(t.palette.primary.main, g.grupo ? 0.08 : 0),
+                          }}
+                        >
+                          {g.grupo ?? ''}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )}
                   <TableRow>
                     {relatorio.colunas.map((c) => (
                       <TableCell key={c.key} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>

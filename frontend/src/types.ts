@@ -315,6 +315,8 @@ export interface RelatorioResumo {
 export interface RelatorioColuna {
   key: string;
   label: string;
+  /** Cabeçalho que agrupa colunas vizinhas (como as células mescladas da planilha). */
+  grupo?: string;
 }
 
 export interface Relatorio {

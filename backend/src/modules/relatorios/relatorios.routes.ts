@@ -13,7 +13,7 @@ const RELATORIOS: Record<
 > = {
   'fechamento-folha': {
     titulo: 'Fechamento da folha',
-    descricao: 'Clientes com folha e os dados da rotina de fechamento.',
+    descricao: 'Clientes com folha, nas colunas da planilha do setor.',
     gerar: repo.relFechamentoFolha,
   },
   'clientes-por-situacao': {

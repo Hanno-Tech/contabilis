@@ -10,6 +10,8 @@ import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 export interface Coluna {
   key: string;
   label: string;
+  /** Cabeçalho que agrupa colunas vizinhas (como as células mescladas da planilha). */
+  grupo?: string;
 }
 
 export interface Relatorio {
@@ -65,71 +67,126 @@ const PROCURACOES: Array<{ campo: string; tipo: string }> = [
 
 // ================================================================ Relatórios
 
-/** 1 — Fechamento da folha (versão completa). Apenas clientes com folha. */
+/**
+ * 1 — Fechamento da folha. Espelha a planilha "Modelo fechamento": mesmas
+ * colunas, na mesma ordem e com os mesmos grupos de cabeçalho.
+ * Apenas clientes com folha.
+ */
 export async function relFechamentoFolha(): Promise<Relatorio> {
+  const GERAIS = 'Informações gerais';
+  const FOLHA = 'Informações relevantes para a folha de pagamento';
+  const ENVIO = 'Forma de envio dos documentos';
+  const INSS = 'Dados para elaboração da guia de INSS autônomo/facultativo';
+  const DOMESTICO = 'Empregado doméstico';
+
   const rows = await clientesComFolha()
+    // Credenciais do empregado doméstico: chave fixa, no máximo uma por cliente.
+    .leftJoin('cliente_credenciais', (join) =>
+      join
+        .onRef('cliente_credenciais.cliente_id', '=', 'clientes.id')
+        .on('cliente_credenciais.tipo', '=', 'empregado_domestico'),
+    )
     .select([
       'clientes.codigo',
       'clientes.nome',
+      'clientes.cnpj',
+      'clientes.tipo_cliente',
+      'clientes.regime_tributacao',
       'clientes.situacao',
-      'cliente_folha.responsavel_fechamento_folha',
-      'cliente_folha.data_meta_entrega_folha',
+      'clientes.responsavel',
+      'cliente_folha.possui_folha',
+      'cliente_folha.apura_ponto_escritorio',
+      'cliente_folha.realiza_lancamentos',
+      'cliente_folha.concede_plano_saude',
+      'cliente_folha.plano_operadora',
+      'cliente_folha.plano_beneficiarios',
+      'cliente_folha.fator_r',
+      'cliente_folha.atividade_concomitante',
+      'cliente_folha.construcao_civil',
+      'cliente_folha.cprb',
+      'cliente_folha.observacoes_folha',
       'cliente_folha.prazo_envio_folhas',
-      'cliente_folha.forma_pagamento_salarios',
-      'cliente_folha.convencao_aplicavel_nome as convencao',
-      'cliente_folha.venc_procuracao_rfb',
-      'cliente_folha.venc_procuracao_det',
-      'cliente_folha.venc_procuracao_det_fgts',
-      'cliente_folha.venc_procuracao_fgts',
-      'cliente_folha.venc_procuracao_econsignado',
-      'cliente_folha.data_vencimento_laudo',
+      'cliente_folha.envio_meio',
+      'cliente_folha.envio_documento',
+      'cliente_folha.envio_contato',
+      'cliente_folha.inss_nit',
+      'cliente_folha.inss_codigo_recolhimento',
+      'cliente_folha.inss_salario_contribuicao',
+      'cliente_folha.inss_aliquota',
+      'cliente_credenciais.usuario as domestico_usuario',
+      'cliente_credenciais.senha_cipher as domestico_senha_cipher',
     ])
     // "Com folha": campo preenchido e que não seja uma negação ("Não possui...").
     .where('cliente_folha.possui_folha', 'is not', null)
     .where('cliente_folha.possui_folha', '!=', '')
     .where('cliente_folha.possui_folha', 'not ilike', 'não%')
     .where('cliente_folha.possui_folha', 'not ilike', 'nao%')
-    .orderBy('clientes.nome')
+    .orderBy('clientes.codigo')
     .execute();
 
-  const linhas = rows.map((r) => {
-    // Procurações vencidas ou vencendo em até 90 dias.
-    const procs = PROCURACOES.map(({ campo, tipo }) => {
-      const data = (r as unknown as Record<string, string | null>)[campo];
-      if (!data || diasAte(data) > 90) return null;
-      return `${tipo}: ${fmtData(data)}`;
-    }).filter(Boolean);
-    const laudo =
-      r.data_vencimento_laudo && diasAte(r.data_vencimento_laudo) <= 90
-        ? fmtData(r.data_vencimento_laudo)
-        : '';
-    return {
-      codigo: r.codigo,
-      nome: r.nome,
-      situacao: r.situacao,
-      responsavel_fechamento: r.responsavel_fechamento_folha ?? '',
-      meta_entrega: r.data_meta_entrega_folha ?? '',
-      prazo_envio: r.prazo_envio_folhas ?? '',
-      forma_pagamento: r.forma_pagamento_salarios ?? '',
-      convencao: r.convencao ?? '',
-      procuracoes: procs.join(' · '),
-      laudo_sst: laudo,
-    };
-  });
+  const linhas = rows.map((r) => ({
+    codigo: r.codigo,
+    nome: r.nome,
+    cnpj: r.cnpj ?? '',
+    tipo_cliente: r.tipo_cliente ?? '',
+    regime_tributacao: r.regime_tributacao ?? '',
+    situacao: r.situacao,
+    responsavel: r.responsavel ?? '',
+    possui_folha: r.possui_folha ?? '',
+    apura_ponto: r.apura_ponto_escritorio ?? '',
+    realiza_lancamentos: r.realiza_lancamentos ?? '',
+    plano_concede: r.concede_plano_saude ?? '',
+    plano_operadora: r.plano_operadora ?? '',
+    plano_beneficiarios: r.plano_beneficiarios ?? '',
+    fator_r: r.fator_r ?? '',
+    atividade_concomitante: r.atividade_concomitante ?? '',
+    construcao_civil: r.construcao_civil ?? '',
+    cprb: r.cprb ?? '',
+    observacoes_folha: r.observacoes_folha ?? '',
+    prazo_envio: r.prazo_envio_folhas ?? '',
+    envio_meio: r.envio_meio ?? '',
+    envio_documento: r.envio_documento ?? '',
+    envio_contato: r.envio_contato ?? '',
+    inss_nit: r.inss_nit ?? '',
+    inss_codigo_recolhimento: r.inss_codigo_recolhimento ?? '',
+    inss_salario_contribuicao: r.inss_salario_contribuicao ?? '',
+    inss_aliquota: r.inss_aliquota ?? '',
+    domestico_usuario: r.domestico_usuario ?? '',
+    // RNF-02: senha nunca sai em claro — o relatório só indica se existe uma.
+    domestico_senha: r.domestico_senha_cipher ? 'Cadastrada' : '',
+  }));
 
   return {
     titulo: 'Relatório para fechamento da folha',
     colunas: [
-      { key: 'codigo', label: 'Código' },
-      { key: 'nome', label: 'Cliente' },
-      { key: 'situacao', label: 'Situação' },
-      { key: 'responsavel_fechamento', label: 'Responsável fechamento' },
-      { key: 'meta_entrega', label: 'Meta de entrega' },
-      { key: 'prazo_envio', label: 'Prazo de envio' },
-      { key: 'forma_pagamento', label: 'Forma de pagamento' },
-      { key: 'convencao', label: 'Convenção' },
-      { key: 'procuracoes', label: 'Procurações vencendo' },
-      { key: 'laudo_sst', label: 'Laudo SST vencendo' },
+      { key: 'codigo', label: 'Código da empresa' },
+      { key: 'nome', label: 'Nome' },
+      { key: 'cnpj', label: 'CNPJ', grupo: GERAIS },
+      { key: 'tipo_cliente', label: 'Tipo de cliente', grupo: GERAIS },
+      { key: 'regime_tributacao', label: 'Regime de tributação', grupo: GERAIS },
+      { key: 'situacao', label: 'Situação', grupo: GERAIS },
+      { key: 'responsavel', label: 'Responsável', grupo: GERAIS },
+      { key: 'possui_folha', label: 'Possui folha de pagamento?', grupo: GERAIS },
+      { key: 'apura_ponto', label: 'Apura o ponto pelo escritório?', grupo: FOLHA },
+      { key: 'realiza_lancamentos', label: 'Realiza lançamentos?', grupo: FOLHA },
+      { key: 'plano_concede', label: 'Concede plano de saúde?', grupo: FOLHA },
+      { key: 'plano_operadora', label: 'Operadora do plano', grupo: FOLHA },
+      { key: 'plano_beneficiarios', label: 'Beneficiários do plano', grupo: FOLHA },
+      { key: 'fator_r', label: 'Fator "R"?', grupo: FOLHA },
+      { key: 'atividade_concomitante', label: 'Atividade concomitante?', grupo: FOLHA },
+      { key: 'construcao_civil', label: 'Construção civil?', grupo: FOLHA },
+      { key: 'cprb', label: 'CPRB?', grupo: FOLHA },
+      { key: 'observacoes_folha', label: 'Observações importantes sobre a folha' },
+      { key: 'prazo_envio', label: 'Prazo para envio das folhas' },
+      { key: 'envio_meio', label: 'Meio', grupo: ENVIO },
+      { key: 'envio_documento', label: 'Documento', grupo: ENVIO },
+      { key: 'envio_contato', label: 'Contato', grupo: ENVIO },
+      { key: 'inss_nit', label: 'NIT', grupo: INSS },
+      { key: 'inss_codigo_recolhimento', label: 'Código de recolhimento', grupo: INSS },
+      { key: 'inss_salario_contribuicao', label: 'Salário de contribuição', grupo: INSS },
+      { key: 'inss_aliquota', label: 'Alíquota', grupo: INSS },
+      { key: 'domestico_usuario', label: 'Usuário', grupo: DOMESTICO },
+      { key: 'domestico_senha', label: 'Senha', grupo: DOMESTICO },
     ],
     linhas,
   };
