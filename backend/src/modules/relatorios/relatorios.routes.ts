@@ -26,6 +26,11 @@ const RELATORIOS: Record<
     descricao: 'Procurações com data de vencimento no passado.',
     gerar: repo.relProcuracoesVencidas,
   },
+  'vencimento-procuracoes': {
+    titulo: 'Vencimento de procurações',
+    descricao: 'Vencimento das procurações RFB, DET/FGTS e e-Consignado e e-mails do DET.',
+    gerar: repo.relVencimentoProcuracoes,
+  },
   'campos-nao-preenchidos': {
     titulo: 'Campos não preenchidos',
     descricao: 'Clientes com campos essenciais em branco.',

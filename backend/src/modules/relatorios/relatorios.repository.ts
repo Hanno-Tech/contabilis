@@ -65,6 +65,15 @@ const PROCURACOES: Array<{ campo: string; tipo: string }> = [
   { campo: 'venc_procuracao_econsignado', tipo: 'e-Consignado' },
 ];
 
+/**
+ * Data de vencimento; sem data, a situação escolhida na ficha ("Sem procuração",
+ * "Não se aplica"). "Data informada" sem data não diz nada, então fica vazio.
+ */
+function vencOuSituacao(data: string | null, situacao: string | null): string {
+  if (data) return fmtData(data);
+  return situacao && situacao !== 'Data informada' ? situacao : '';
+}
+
 // ================================================================ Relatórios
 
 /**
@@ -258,6 +267,56 @@ export async function relProcuracoesVencidas(): Promise<Relatorio> {
       { key: 'vencimento', label: 'Data do vencimento' },
     ],
     linhas,
+  };
+}
+
+/**
+ * 3b — Vencimento de procurações: uma linha por empresa, com o vencimento de
+ * cada procuração e os e-mails que recebem as notificações do DET.
+ */
+export async function relVencimentoProcuracoes(): Promise<Relatorio> {
+  const rows = await clientesComFolha()
+    .select([
+      'clientes.codigo',
+      'clientes.nome',
+      'clientes.cnpj',
+      'cliente_folha.venc_procuracao_rfb',
+      'cliente_folha.venc_procuracao_rfb_situacao',
+      'cliente_folha.venc_procuracao_det_fgts',
+      'cliente_folha.venc_procuracao_det_fgts_situacao',
+      'cliente_folha.venc_procuracao_econsignado',
+      'cliente_folha.venc_procuracao_econsignado_situacao',
+      'cliente_folha.emails_notificacao_det',
+    ])
+    .orderBy('clientes.codigo')
+    .execute();
+
+  return {
+    titulo: 'Relatório de vencimento de procurações',
+    colunas: [
+      { key: 'codigo', label: 'Código da empresa' },
+      { key: 'nome', label: 'Nome da empresa' },
+      { key: 'cnpj', label: 'CNPJ' },
+      { key: 'procuracao_rfb', label: 'Procuração RFB' },
+      { key: 'procuracao_det_fgts', label: 'Procuração DET e FGTS Digital' },
+      { key: 'procuracao_econsignado', label: 'Procuração e-Consignado' },
+      { key: 'emails_det', label: 'E-mails que recebem o DET' },
+    ],
+    linhas: rows.map((r) => ({
+      codigo: r.codigo,
+      nome: r.nome,
+      cnpj: r.cnpj ?? '',
+      procuracao_rfb: vencOuSituacao(r.venc_procuracao_rfb, r.venc_procuracao_rfb_situacao),
+      procuracao_det_fgts: vencOuSituacao(
+        r.venc_procuracao_det_fgts,
+        r.venc_procuracao_det_fgts_situacao,
+      ),
+      procuracao_econsignado: vencOuSituacao(
+        r.venc_procuracao_econsignado,
+        r.venc_procuracao_econsignado_situacao,
+      ),
+      emails_det: r.emails_notificacao_det ?? '',
+    })),
   };
 }
 
