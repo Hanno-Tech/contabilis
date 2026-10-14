@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { setorSchema } from '../../lib/setor.js';
 
 export const SITUACOES_EVENTO = ['A lançar', 'Lançado', 'Cancelado'] as const;
 
@@ -10,6 +11,8 @@ const text = z.string().trim().min(1).nullable().optional();
  * que lançou é definido no servidor a partir da sessão.
  */
 export const eventoInputSchema = z.object({
+  // Setor dono do registro — só vale na criação; a edição não troca de setor.
+  setor: setorSchema,
   cliente_id: z.string().uuid('Cliente inválido'),
   competencia: z.string().regex(/^\d{4}-\d{2}$/, 'Competência deve estar no formato AAAA-MM'),
   colaborador_nome: text,

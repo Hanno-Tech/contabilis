@@ -11,6 +11,8 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
+import CalculateOutlinedIcon from '@mui/icons-material/CalculateOutlined';
+import HomeWorkOutlinedIcon from '@mui/icons-material/HomeWorkOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -65,6 +67,21 @@ const navEntries: NavEntry[] = [
       { to: '/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
     ],
   },
+  {
+    kind: 'group',
+    label: 'Setor contábil',
+    icon: <CalculateOutlinedIcon fontSize="small" />,
+    children: [
+      { to: '/contabil/clientes', label: 'Informações Gerais', icon: <GroupsIcon fontSize="small" /> },
+      { to: '/contabil/imoveis', label: 'Controle de imóveis', icon: <HomeWorkOutlinedIcon fontSize="small" /> },
+      { to: '/contabil/ocorrencias', label: 'Ocorrências', icon: <ReportProblemOutlinedIcon fontSize="small" /> },
+      { to: '/contabil/pendencias', label: 'Pendências', icon: <PlaylistAddCheckIcon fontSize="small" /> },
+      { to: '/contabil/eventos-futuros', label: 'Eventos futuros', icon: <EventNoteIcon fontSize="small" /> },
+      { to: '/contabil/senhas-setor', label: 'Senhas do setor', icon: <VpnKeyOutlinedIcon fontSize="small" /> },
+      { to: '/contabil/relatorios', label: 'Relatórios', icon: <AssessmentOutlinedIcon fontSize="small" /> },
+      { to: '/contabil/alteracoes', label: 'Alterações', icon: <HistoryIcon fontSize="small" /> },
+    ],
+  },
 ];
 
 /** Marca em gradiente — assinatura da identidade. */
@@ -95,7 +112,7 @@ function Brand() {
           Contabilis
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Departamento Pessoal
+          Pessoal · Contábil
         </Typography>
       </Box>
     </Stack>

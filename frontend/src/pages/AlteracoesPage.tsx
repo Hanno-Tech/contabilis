@@ -1,4 +1,5 @@
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import HomeWorkOutlinedIcon from '@mui/icons-material/HomeWorkOutlined';
 import GroupsIcon from '@mui/icons-material/Groups';
 import HistoryIcon from '@mui/icons-material/History';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
@@ -21,6 +22,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listAlteracoes } from '../api/resources';
 import { EmptyState, Mono } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 import type { Alteracao, Entidade, FieldChange } from '../types';
 
 /** Formata um ISO timestamp em 'DD/MM/AAAA às HH:MM'. */
@@ -69,25 +71,40 @@ function ChangeRow({ change }: { change: FieldChange }) {
   );
 }
 
+/**
+ * `setor` é o do registro alterado — ou, nas edições do cadastro geral do
+ * cliente (setor null), o da tela, para o clique abrir a ficha daquele setor.
+ */
 const ENTIDADE_CONFIG = {
-  cliente: { label: 'cliente', artigo: 'o', icon: <GroupsIcon />, destino: (id: string) => `/clientes/${id}` },
+  cliente: {
+    label: 'cliente',
+    artigo: 'o',
+    icon: <GroupsIcon />,
+    destino: (id: string, setor: Setor) => rota(setor, `/clientes/${id}`),
+  },
   ocorrencia: {
     label: 'ocorrência',
     artigo: 'a',
     icon: <ReportProblemOutlinedIcon />,
-    destino: (id: string) => `/ocorrencias/${id}/editar`,
+    destino: (id: string, setor: Setor) => rota(setor, `/ocorrencias/${id}/editar`),
   },
   pendencia: {
     label: 'pendência',
     artigo: 'a',
     icon: <PlaylistAddCheckIcon />,
-    destino: (id: string) => `/pendencias/${id}/editar`,
+    destino: (id: string, setor: Setor) => rota(setor, `/pendencias/${id}/editar`),
   },
   evento: {
     label: 'evento futuro',
     artigo: 'o',
     icon: <EventNoteIcon />,
-    destino: (id: string) => `/eventos-futuros/${id}/editar`,
+    destino: (id: string, setor: Setor) => rota(setor, `/eventos-futuros/${id}/editar`),
+  },
+  imovel: {
+    label: 'imóvel',
+    artigo: 'o',
+    icon: <HomeWorkOutlinedIcon />,
+    destino: (id: string) => `/contabil/imoveis/${id}/editar`,
   },
 } as const;
 
@@ -97,7 +114,7 @@ const ACAO_CONFIG = {
   excluiu: { verbo: 'excluiu', chip: 'Exclusão', color: 'error' as const },
 };
 
-function AlteracaoCard({ item }: { item: Alteracao }) {
+function AlteracaoCard({ item, setor }: { item: Alteracao; setor: Setor }) {
   const navigate = useNavigate();
   const entidade = ENTIDADE_CONFIG[item.entidade];
   const acao = ACAO_CONFIG[item.acao];
@@ -127,7 +144,7 @@ function AlteracaoCard({ item }: { item: Alteracao }) {
               icon={entidade.icon}
               label={item.entidade_label ?? '—'}
               variant="outlined"
-              onClick={excluido ? undefined : () => navigate(entidade.destino(item.entidade_id))}
+              onClick={excluido ? undefined : () => navigate(entidade.destino(item.entidade_id, item.setor ?? setor))}
               sx={{ cursor: excluido ? 'default' : 'pointer', maxWidth: 320 }}
             />
             <Chip size="small" label={acao.chip} color={acao.color} variant="outlined" />
@@ -149,14 +166,14 @@ function AlteracaoCard({ item }: { item: Alteracao }) {
   );
 }
 
-export function AlteracoesPage() {
+export function AlteracoesPage({ setor = 'pessoal' }: { setor?: Setor }) {
   const [q, setQ] = useState('');
   const [entidade, setEntidade] = useState<'' | Entidade>('');
 
   const { data, isFetching } = useQuery({
-    queryKey: ['alteracoes', { q, entidade }],
+    queryKey: ['alteracoes', setor, { q, entidade }],
     queryFn: () =>
-      listAlteracoes({ q: q || undefined, entidade: entidade || undefined }),
+      listAlteracoes({ setor, q: q || undefined, entidade: entidade || undefined }),
     placeholderData: keepPreviousData,
   });
 
@@ -203,6 +220,7 @@ export function AlteracoesPage() {
             <MenuItem value="ocorrencia">Ocorrências</MenuItem>
             <MenuItem value="pendencia">Pendências</MenuItem>
             <MenuItem value="evento">Eventos futuros</MenuItem>
+            {setor === 'contabil' && <MenuItem value="imovel">Imóveis</MenuItem>}
           </TextField>
         </Stack>
       </Paper>
@@ -214,7 +232,7 @@ export function AlteracoesPage() {
       ) : data && data.length > 0 ? (
         <Box>
           {data.map((item) => (
-            <AlteracaoCard key={item.id} item={item} />
+            <AlteracaoCard key={item.id} item={item} setor={setor} />
           ))}
         </Box>
       ) : (

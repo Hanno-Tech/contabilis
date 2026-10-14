@@ -1,5 +1,6 @@
-import { sql } from 'kysely';
+import { sql, type ExpressionBuilder } from 'kysely';
 import { db } from '../../db/index.js';
+import type { Database } from '../../db/types.js';
 import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 
 /**
@@ -144,6 +145,13 @@ async function getComposicao() {
   return { por_responsavel, por_regime, por_situacao };
 }
 
+/**
+ * O dashboard é do setor pessoal: entram as alterações dele e as do cadastro
+ * geral do cliente (setor NULL), que interessam aos dois setores.
+ */
+const doSetorPessoal = (eb: ExpressionBuilder<Database, 'alteracoes'>) =>
+  eb.or([eb('setor', '=', 'pessoal'), eb('setor', 'is', null)]);
+
 async function getAtividade() {
   const desde = async (dias: number) => {
     const corte = new Date(Date.now() - dias * 86_400_000);
@@ -151,6 +159,7 @@ async function getAtividade() {
       .selectFrom('alteracoes')
       .select((eb) => eb.fn.countAll().as('total'))
       .where(sql<boolean>`created_at >= ${corte}`)
+      .where(doSetorPessoal)
       .executeTakeFirst();
     return n(row?.total);
   };
@@ -170,6 +179,7 @@ async function getAtividade() {
         'alteracoes',
         'created_at',
       ])
+      .where(doSetorPessoal)
       .orderBy('created_at', 'desc')
       .limit(6)
       .execute(),
@@ -265,6 +275,7 @@ async function getEventosProximos(): Promise<EventoProximo[]> {
       'eventos_futuros.competencia',
     ])
     .where('eventos_futuros.situacao', '=', 'A lançar')
+    .where('eventos_futuros.setor', '=', 'pessoal')
     .execute();
 
   return rows

@@ -24,6 +24,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPendenciaOpcoes, listClientes, listPendencias } from '../api/resources';
 import { EmptyState, Mono, formatDate } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 /** Chip de situação da pendência: âmbar (aberta), verde (resolvida), cinza (desconsiderada). */
 export function PendenciaStatusChip({ situacao }: { situacao: string }) {
@@ -58,7 +59,7 @@ function trunc(v: string | null, max = 90): string {
   return v.length > max ? `${v.slice(0, max)}…` : v;
 }
 
-export function PendenciasListPage() {
+export function PendenciasListPage({ setor = 'pessoal' }: { setor?: Setor }) {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [clienteId, setClienteId] = useState('');
@@ -71,9 +72,10 @@ export function PendenciasListPage() {
   const { data: clientes } = useQuery({ queryKey: ['clientes', 'todos'], queryFn: () => listClientes({}) });
 
   const { data: pendencias, isFetching } = useQuery({
-    queryKey: ['pendencias', { q, clienteId, situacao, solucaoId, dataDe, dataAte }],
+    queryKey: ['pendencias', setor, { q, clienteId, situacao, solucaoId, dataDe, dataAte }],
     queryFn: () =>
       listPendencias({
+        setor,
         q: q || undefined,
         cliente_id: clienteId || undefined,
         situacao: situacao || undefined,
@@ -96,7 +98,7 @@ export function PendenciasListPage() {
             {pendencias ? `${pendencias.length} pendência(s)` : 'Carregando...'}
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/pendencias/nova')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate(rota(setor, '/pendencias/nova'))}>
           Nova pendência
         </Button>
       </Stack>
@@ -169,7 +171,7 @@ export function PendenciasListPage() {
                   key={p.id}
                   hover
                   sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/pendencias/${p.id}/editar`)}
+                  onClick={() => navigate(rota(setor, `/pendencias/${p.id}/editar`))}
                 >
                   <TableCell>
                     <Mono>{formatDate(p.data)}</Mono>

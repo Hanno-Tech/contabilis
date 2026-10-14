@@ -1,7 +1,9 @@
 import { db } from '../../db/index.js';
+import type { Setor } from '../../db/types.js';
 import type { OcorrenciaInput } from './ocorrencias.schema.js';
 
 export interface OcorrenciaFilters {
+  setor: Setor;
   q?: string;
   cliente_id?: string;
   situacao?: string;
@@ -30,6 +32,7 @@ const withCliente = () =>
     .innerJoin('clientes', 'clientes.id', 'ocorrencias.cliente_id')
     .select([
       'ocorrencias.id',
+      'ocorrencias.setor',
       'ocorrencias.cliente_id',
       'ocorrencias.data',
       'ocorrencias.ocorrencia',
@@ -46,7 +49,7 @@ const withCliente = () =>
     ]);
 
 export async function listOcorrencias(filters: OcorrenciaFilters) {
-  let query = withCliente();
+  let query = withCliente().where('ocorrencias.setor', '=', filters.setor);
 
   if (filters.q) {
     const term = `%${filters.q.trim()}%`;
@@ -76,7 +79,7 @@ export async function getOcorrencia(id: string) {
 export async function createOcorrencia(input: OcorrenciaInput): Promise<string> {
   const row = await db
     .insertInto('ocorrencias')
-    .values(mainColumns(input))
+    .values({ ...mainColumns(input), setor: input.setor })
     .returning('id')
     .executeTakeFirstOrThrow();
   return row.id;

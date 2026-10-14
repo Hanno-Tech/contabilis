@@ -1,6 +1,6 @@
 import type { Selectable } from 'kysely';
 import { db } from '../../db/index.js';
-import type { SenhasSetorTable } from '../../db/types.js';
+import type { SenhasSetorTable, Setor } from '../../db/types.js';
 import { decrypt, encrypt } from '../../lib/crypto.js';
 import type { SenhaSetorInput } from './senhas-setor.schema.js';
 
@@ -8,6 +8,7 @@ import type { SenhaSetorInput } from './senhas-setor.schema.js';
 function masked(r: Selectable<SenhasSetorTable>) {
   return {
     id: r.id,
+    setor: r.setor,
     nome: r.nome,
     link: r.link,
     usuario: r.usuario,
@@ -24,6 +25,7 @@ const baseQuery = () =>
     .selectFrom('senhas_setor')
     .select([
       'id',
+      'setor',
       'nome',
       'link',
       'usuario',
@@ -34,8 +36,8 @@ const baseQuery = () =>
       'updated_at',
     ]);
 
-export async function listSenhasSetor(q?: string) {
-  let query = baseQuery();
+export async function listSenhasSetor(setor: Setor, q?: string) {
+  let query = baseQuery().where('setor', '=', setor);
   if (q) {
     const term = `%${q.trim()}%`;
     query = query.where((eb) =>
@@ -59,6 +61,7 @@ export async function createSenhaSetor(input: SenhaSetorInput): Promise<string> 
   const row = await db
     .insertInto('senhas_setor')
     .values({
+      setor: input.setor,
       nome: input.nome,
       link: input.link ?? null,
       usuario: input.usuario ?? null,

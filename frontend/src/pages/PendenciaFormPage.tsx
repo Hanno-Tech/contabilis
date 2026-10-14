@@ -23,6 +23,7 @@ import {
   updatePendencia,
 } from '../api/resources';
 import { ReadField, SectionCard, formatDate } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 interface FormState {
   cliente_id: string;
@@ -31,7 +32,13 @@ interface FormState {
   usuario_solucao_id: string;
 }
 
-export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
+export function PendenciaFormPage({
+  mode,
+  setor = 'pessoal',
+}: {
+  mode: 'create' | 'edit';
+  setor?: Setor;
+}) {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -95,10 +102,10 @@ export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setSaving(true);
     try {
       if (isEdit) await updatePendencia(id, { ...payload, version });
-      else await createPendencia(payload);
+      else await createPendencia({ ...payload, setor });
       queryClient.invalidateQueries({ queryKey: ['pendencias'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      navigate('/pendencias');
+      navigate(rota(setor, '/pendencias'));
     } catch (err) {
       if (isConflict(err)) setConflict(true);
       else setError(apiErrorMessage(err, 'Não foi possível salvar a pendência.'));
@@ -117,7 +124,7 @@ export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to="/pendencias" sx={{ mb: 2 }}>
+      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to={rota(setor, '/pendencias')} sx={{ mb: 2 }}>
         Voltar
       </Button>
       <Typography variant="h5" sx={{ mb: 3 }}>
@@ -212,7 +219,7 @@ export function PendenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
       </SectionCard>
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
-        <Button component={RouterLink} to="/pendencias">
+        <Button component={RouterLink} to={rota(setor, '/pendencias')}>
           Cancelar
         </Button>
         <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>

@@ -16,6 +16,7 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { apiErrorMessage, isConflict } from '../api/client';
 import { createSenhaSetor, fetchSenhaSetor, updateSenhaSetor } from '../api/resources';
 import { SectionCard } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
 
@@ -29,7 +30,13 @@ interface FormState {
 
 const emptyForm: FormState = { nome: '', link: '', usuario: '', senha: '', observacoes: '' };
 
-export function SenhaSetorFormPage({ mode }: { mode: 'create' | 'edit' }) {
+export function SenhaSetorFormPage({
+  mode,
+  setor = 'pessoal',
+}: {
+  mode: 'create' | 'edit';
+  setor?: Setor;
+}) {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -83,9 +90,9 @@ export function SenhaSetorFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setSaving(true);
     try {
       if (isEdit) await updateSenhaSetor(id, { ...payload, version });
-      else await createSenhaSetor(payload);
+      else await createSenhaSetor({ ...payload, setor });
       queryClient.invalidateQueries({ queryKey: ['senhas-setor'] });
-      navigate('/senhas-setor');
+      navigate(rota(setor, '/senhas-setor'));
     } catch (err) {
       if (isConflict(err)) setConflict(true);
       else setError(apiErrorMessage(err, 'Não foi possível salvar a senha.'));
@@ -104,7 +111,7 @@ export function SenhaSetorFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to="/senhas-setor" sx={{ mb: 2 }}>
+      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to={rota(setor, '/senhas-setor')} sx={{ mb: 2 }}>
         Voltar
       </Button>
       <Typography variant="h5" sx={{ mb: 3 }}>
@@ -146,7 +153,7 @@ export function SenhaSetorFormPage({ mode }: { mode: 'create' | 'edit' }) {
       </SectionCard>
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
-        <Button component={RouterLink} to="/senhas-setor">
+        <Button component={RouterLink} to={rota(setor, '/senhas-setor')}>
           Cancelar
         </Button>
         <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>

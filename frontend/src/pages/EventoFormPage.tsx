@@ -23,6 +23,7 @@ import {
   updateEvento,
 } from '../api/resources';
 import { ReadField, SectionCard } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
 const mesAtual = () => new Date().toISOString().slice(0, 7);
@@ -35,7 +36,13 @@ interface FormState {
   situacao: string;
 }
 
-export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
+export function EventoFormPage({
+  mode,
+  setor = 'pessoal',
+}: {
+  mode: 'create' | 'edit';
+  setor?: Setor;
+}) {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -100,10 +107,10 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setSaving(true);
     try {
       if (isEdit) await updateEvento(id, { ...payload, version });
-      else await createEvento(payload);
+      else await createEvento({ ...payload, setor });
       queryClient.invalidateQueries({ queryKey: ['eventos'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      navigate('/eventos-futuros');
+      navigate(rota(setor, '/eventos-futuros'));
     } catch (err) {
       if (isConflict(err)) setConflict(true);
       else setError(apiErrorMessage(err, 'Não foi possível salvar o evento.'));
@@ -122,7 +129,7 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to="/eventos-futuros" sx={{ mb: 2 }}>
+      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to={rota(setor, '/eventos-futuros')} sx={{ mb: 2 }}>
         Voltar
       </Button>
       <Typography variant="h5" sx={{ mb: 3 }}>
@@ -171,15 +178,18 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Nome do colaborador"
-              value={form.colaborador_nome}
-              onChange={(e) => setField('colaborador_nome', e.target.value)}
-              fullWidth
-              size="small"
-            />
-          </Grid>
+          {/* Colaborador é coisa da folha — o evento contábil se descreve pela descrição. */}
+          {setor === 'pessoal' && (
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Nome do colaborador"
+                value={form.colaborador_nome}
+                onChange={(e) => setField('colaborador_nome', e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Grid>
+          )}
           <Grid item xs={12} md={6}>
             <TextField
               select
@@ -215,7 +225,7 @@ export function EventoFormPage({ mode }: { mode: 'create' | 'edit' }) {
       </SectionCard>
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
-        <Button component={RouterLink} to="/eventos-futuros">
+        <Button component={RouterLink} to={rota(setor, '/eventos-futuros')}>
           Cancelar
         </Button>
         <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>

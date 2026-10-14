@@ -1,5 +1,5 @@
 import { db } from '../../db/index.js';
-import type { FieldChange } from '../../db/types.js';
+import type { FieldChange, Setor } from '../../db/types.js';
 import type { SessionUser } from '../../lib/jwt.js';
 import {
   CLIENTE_FOLHA_LABELS,
@@ -8,8 +8,9 @@ import {
   OCORRENCIA_LABELS,
   PENDENCIA_LABELS,
 } from './audit.labels.js';
+import { CAMPOS_CONTABIL, CAMPOS_IMOVEL, rotulos } from '../contabil/contabil.campos.js';
 
-export type Entidade = 'cliente' | 'ocorrencia' | 'pendencia' | 'evento';
+export type Entidade = 'cliente' | 'ocorrencia' | 'pendencia' | 'evento' | 'imovel';
 export type Acao = 'criou' | 'editou' | 'excluiu';
 
 /** Normaliza um valor de campo para string comparável (vazio → null). */
@@ -41,6 +42,8 @@ interface WriteArgs {
   acao: Acao;
   usuario: SessionUser;
   alteracoes: FieldChange[];
+  /** null = cadastro geral do cliente, que interessa aos dois setores. */
+  setor: Setor | null;
 }
 
 /** Grava um evento de auditoria. Nunca lança — auditoria não pode quebrar o fluxo. */
@@ -56,6 +59,7 @@ export async function writeAudit(args: WriteArgs): Promise<void> {
         usuario_id: args.usuario.id,
         usuario_nome: args.usuario.name,
         alteracoes: JSON.stringify(args.alteracoes),
+        setor: args.setor,
       })
       .execute();
   } catch (err) {
@@ -117,6 +121,7 @@ export async function registrarCliente(
     acao,
     usuario,
     alteracoes,
+    setor: null,
   });
 }
 
@@ -152,6 +157,26 @@ export async function registrarClienteFolha(
     acao: 'editou',
     usuario,
     alteracoes,
+    setor: 'pessoal',
+  });
+}
+
+/** Auditoria da ficha contábil (tabela `cliente_contabil`). */
+export async function registrarClienteContabil(
+  usuario: SessionUser,
+  before: ClienteSnapshot & { contabil: Record<string, unknown> | null },
+  after: ClienteSnapshot & { contabil: Record<string, unknown> | null },
+): Promise<void> {
+  const alteracoes = diffRegistro(before.contabil, after.contabil ?? {}, LABELS_CONTABIL);
+  if (alteracoes.length === 0) return;
+  await writeAudit({
+    entidade: 'cliente',
+    entidade_id: after.id,
+    entidade_label: `${after.codigo} — ${after.nome}`,
+    acao: 'editou',
+    usuario,
+    alteracoes,
+    setor: 'contabil',
   });
 }
 
@@ -159,6 +184,7 @@ export async function registrarClienteFolha(
 
 interface OcorrenciaSnapshot {
   id: string;
+  setor: Setor;
   data: string;
   cliente_nome: string;
   situacao: string;
@@ -191,6 +217,7 @@ export async function registrarOcorrencia(
     acao,
     usuario,
     alteracoes,
+    setor: snap.setor,
   });
 }
 
@@ -198,6 +225,7 @@ export async function registrarOcorrencia(
 
 interface PendenciaSnapshot {
   id: string;
+  setor: Setor;
   data: string;
   cliente_nome: string;
   situacao: string;
@@ -224,6 +252,7 @@ export async function registrarPendencia(
     acao,
     usuario,
     alteracoes,
+    setor: snap.setor,
   });
 }
 
@@ -231,6 +260,7 @@ export async function registrarPendencia(
 
 interface EventoSnapshot {
   id: string;
+  setor: Setor;
   competencia: string;
   cliente_nome: string;
   situacao: string;
@@ -263,12 +293,51 @@ export async function registrarEvento(
     acao,
     usuario,
     alteracoes,
+    setor: snap.setor,
+  });
+}
+
+// ---------------------------------------------------------------------- Imóvel
+
+const LABELS_CONTABIL = rotulos(CAMPOS_CONTABIL);
+const LABELS_IMOVEL = { cliente_nome: 'Cliente', numero_ordem: 'Número de ordem', ...rotulos(CAMPOS_IMOVEL) };
+
+interface ImovelSnapshot {
+  id: string;
+  numero_ordem: number;
+  cliente_nome: string;
+  [key: string]: unknown;
+}
+
+export async function registrarImovel(
+  usuario: SessionUser,
+  acao: Acao,
+  before: ImovelSnapshot | null,
+  after: ImovelSnapshot | null,
+): Promise<void> {
+  const snap = after ?? before;
+  if (!snap) return;
+  let alteracoes: FieldChange[] = [];
+  if (acao === 'editou') {
+    alteracoes = diffRegistro(before, after!, LABELS_IMOVEL);
+    if (alteracoes.length === 0) return; // edição sem mudança real — não registra
+  }
+  await writeAudit({
+    entidade: 'imovel',
+    entidade_id: snap.id,
+    entidade_label: `${snap.cliente_nome} — imóvel nº ${snap.numero_ordem}`,
+    acao,
+    usuario,
+    alteracoes,
+    setor: 'contabil',
   });
 }
 
 // ---------------------------------------------------------------------- Listar
 
 export interface AlteracaoFilters {
+  /** Registros do setor e os do cadastro geral (setor NULL). */
+  setor: Setor;
   entidade?: Entidade;
   entidade_id?: string;
   q?: string;
@@ -287,8 +356,10 @@ export async function listAlteracoes(filters: AlteracaoFilters) {
       'usuario_id',
       'usuario_nome',
       'alteracoes',
+      'setor',
       'created_at',
-    ]);
+    ])
+    .where((eb) => eb.or([eb('setor', '=', filters.setor), eb('setor', 'is', null)]));
 
   if (filters.entidade) query = query.where('entidade', '=', filters.entidade);
   if (filters.entidade_id) query = query.where('entidade_id', '=', filters.entidade_id);

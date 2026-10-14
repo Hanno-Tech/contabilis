@@ -24,6 +24,7 @@ import {
 } from '../api/resources';
 import { useAuth } from '../auth/AuthContext';
 import { SectionCard } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -38,7 +39,13 @@ interface FormState {
   responsavel_id: string;
 }
 
-export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
+export function OcorrenciaFormPage({
+  mode,
+  setor = 'pessoal',
+}: {
+  mode: 'create' | 'edit';
+  setor?: Setor;
+}) {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -125,9 +132,9 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setSaving(true);
     try {
       if (isEdit) await updateOcorrencia(id, { ...payload, version });
-      else await createOcorrencia(payload);
+      else await createOcorrencia({ ...payload, setor });
       queryClient.invalidateQueries({ queryKey: ['ocorrencias'] });
-      navigate('/ocorrencias');
+      navigate(rota(setor, '/ocorrencias'));
     } catch (err) {
       if (isConflict(err)) setConflict(true);
       else setError(apiErrorMessage(err, 'Não foi possível salvar a ocorrência.'));
@@ -146,7 +153,7 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to="/ocorrencias" sx={{ mb: 2 }}>
+      <Button startIcon={<ArrowBackIcon />} component={RouterLink} to={rota(setor, '/ocorrencias')} sx={{ mb: 2 }}>
         Voltar
       </Button>
       <Typography variant="h5" sx={{ mb: 3 }}>
@@ -268,7 +275,7 @@ export function OcorrenciaFormPage({ mode }: { mode: 'create' | 'edit' }) {
       </SectionCard>
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
-        <Button component={RouterLink} to="/ocorrencias">
+        <Button component={RouterLink} to={rota(setor, '/ocorrencias')}>
           Cancelar
         </Button>
         <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={saving}>

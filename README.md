@@ -292,7 +292,14 @@ saiu da tela junto com o item 6 das observações do setor.
 | GET/POST/PUT/DELETE | `/api/eventos-futuros` | Eventos futuros a lançar (cliente, competência, colaborador, situação) |
 | GET | `/api/relatorios` | Catálogo dos relatórios disponíveis |
 | GET | `/api/relatorios/:key` | Dados de um relatório (`{ titulo, colunas, linhas }`) |
-| GET | `/api/alteracoes` | Trilha de auditoria com filtros (`?entidade=`, `?q=`, `?entidade_id=`) |
+| GET | `/api/alteracoes` | Trilha de auditoria com filtros (`?setor=`, `?entidade=`, `?q=`, `?entidade_id=`) |
+| GET | `/api/contabil/clientes` | Carteira com a ficha contábil (`?q=`, `?responsavel=`, `?prioridade=`, `?grupo=`, `?regime=`, `?situacao=`) |
+| GET/PUT | `/api/contabil/clientes/:id` | Ficha contábil do cliente (PUT exige `version`) |
+| GET/POST/PUT/DELETE | `/api/imoveis` | Controle de imóveis dos clientes |
+
+Ocorrências, pendências, eventos futuros, senhas do setor, relatórios e
+alterações aceitam `?setor=pessoal|contabil` na listagem (sem o parâmetro, vale
+`pessoal`), e o POST recebe `setor` no corpo.
 
 ## Tela inicial (dashboard)
 
@@ -319,6 +326,45 @@ Além de Informações Gerais e Ocorrências, o Setor Pessoal reúne:
 - **Relatórios** — 7 relatórios (fechamento da folha, clientes por situação,
   procurações vencidas, campos não preenchidos, clientes por regime, pendências
   em aberto e eventos a lançar), cada um com **exportação para Excel (.xlsx)**.
+
+## Setor contábil
+
+Menu próprio, com as mesmas telas do Setor Pessoal — **Ocorrências,
+Pendências, Eventos futuros, Senhas do setor, Relatórios e Alterações** — e dois
+módulos específicos:
+
+- **Informações Gerais** — ficha contábil do cliente, espelho da planilha
+  "Informações Gerais": dados da empresa (grupo empresarial, ramo, responsável,
+  prioridade, NBC TG…), informações tributárias (IRPJ/CSLL, benefício fiscal) e
+  os critérios contábeis por grupo do balanço (ativo circulante, não
+  circulante, passivo, patrimônio líquido). Código, nome, CNPJ, tipo, situação
+  e regime **não são duplicados**: vêm do cadastro geral (menu "Clientes").
+  Fica na tabela `cliente_contabil` (1:1 com `clientes`).
+- **Controle de imóveis** — planilha FRSoc-019: descrição do imóvel, processo
+  de integralização, dados para o IPTU, informações contábeis e situação, com
+  número de ordem sequencial por cliente. Tabela `imoveis`.
+
+Os registros compartilhados (ocorrências, pendências, eventos, senhas) levam
+uma coluna `setor`; cada setor só vê os seus. Na trilha de alterações, edições
+do cadastro geral do cliente ficam com `setor` nulo e aparecem nos dois.
+
+Regras que vieram da planilha:
+
+- "Qual benefício possui?" só abre com "Sim" no benefício fiscal; com "Não",
+  grava "Não" automaticamente.
+- As perguntas de estoque só aparecem para quem possui estoque; a margem de
+  valor agregado, para quem não envia o CMV/CPV. "Tipos de estoque" aceita
+  vários valores.
+- O quadro de integralização do imóvel só aparece quando a forma de aquisição
+  é "Integralização".
+
+Listas suspensas do setor ficam em `frontend/src/lib/contabil-campos.ts`; as
+colunas, os rótulos da auditoria e os relatórios saem de
+`backend/src/modules/contabil/contabil.campos.ts`.
+
+Relatórios contábeis: informações gerais (colunas da planilha), clientes por
+responsável, controle de imóveis (colunas da FRSoc-019), integralizações em
+andamento, clientes por regime, pendências em aberto e eventos a lançar.
 
 ## Trilha de alterações (auditoria)
 

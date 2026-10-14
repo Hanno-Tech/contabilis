@@ -1,20 +1,22 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { setorDaQuery } from '../../lib/setor.js';
 import { listAlteracoes, type Entidade } from './audit.repository.js';
 
 export const auditRouter = Router();
 auditRouter.use(requireAuth);
 
-const ENTIDADES: Entidade[] = ['cliente', 'ocorrencia', 'pendencia', 'evento'];
+const ENTIDADES: Entidade[] = ['cliente', 'ocorrencia', 'pendencia', 'evento', 'imovel'];
 
 // Lista a trilha de auditoria com filtros opcionais (?entidade=&q=&entidade_id=&limit=)
 auditRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { entidade, q, entidade_id, limit } = req.query;
+    const { setor, entidade, q, entidade_id, limit } = req.query;
     res.json(
       await listAlteracoes({
+        setor: setorDaQuery(setor),
         entidade: ENTIDADES.includes(entidade as Entidade) ? (entidade as Entidade) : undefined,
         entidade_id: typeof entidade_id === 'string' ? entidade_id : undefined,
         q: typeof q === 'string' ? q : undefined,

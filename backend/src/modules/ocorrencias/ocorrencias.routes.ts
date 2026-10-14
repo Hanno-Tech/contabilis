@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, Conflict, NotFound } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { validateBody } from '../../middleware/validate.js';
+import { setorDaQuery } from '../../lib/setor.js';
 import { listSelectableUsers } from '../auth/usuarios.repository.js';
 import {
   ocorrenciaInputSchema,
@@ -27,9 +28,10 @@ ocorrenciasRouter.get(
 ocorrenciasRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { q, cliente_id, situacao, responsavel_id, data_de, data_ate } = req.query;
+    const { setor, q, cliente_id, situacao, responsavel_id, data_de, data_ate } = req.query;
     res.json(
       await repo.listOcorrencias({
+        setor: setorDaQuery(setor),
         q: typeof q === 'string' ? q : undefined,
         cliente_id: typeof cliente_id === 'string' ? cliente_id : undefined,
         situacao: typeof situacao === 'string' ? situacao : undefined,

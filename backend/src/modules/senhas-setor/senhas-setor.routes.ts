@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, Conflict, NotFound } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { validateBody } from '../../middleware/validate.js';
+import { setorDaQuery } from '../../lib/setor.js';
 import {
   senhaSetorInputSchema,
   senhaSetorUpdateSchema,
@@ -16,8 +17,10 @@ senhasSetorRouter.use(requireAuth);
 senhasSetorRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { q } = req.query;
-    res.json(await repo.listSenhasSetor(typeof q === 'string' ? q : undefined));
+    const { q, setor } = req.query;
+    res.json(
+      await repo.listSenhasSetor(setorDaQuery(setor), typeof q === 'string' ? q : undefined),
+    );
   }),
 );
 

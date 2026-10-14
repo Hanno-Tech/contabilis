@@ -1,7 +1,9 @@
 import { db } from '../../db/index.js';
+import type { Setor } from '../../db/types.js';
 import type { PendenciaInput } from './pendencias.schema.js';
 
 export interface PendenciaFilters {
+  setor: Setor;
   q?: string;
   cliente_id?: string;
   situacao?: string;
@@ -27,6 +29,7 @@ const withCliente = () =>
     .innerJoin('clientes', 'clientes.id', 'pendencias.cliente_id')
     .select([
       'pendencias.id',
+      'pendencias.setor',
       'pendencias.cliente_id',
       'pendencias.data',
       'pendencias.descricao',
@@ -43,7 +46,7 @@ const withCliente = () =>
     ]);
 
 export async function listPendencias(filters: PendenciaFilters) {
-  let query = withCliente();
+  let query = withCliente().where('pendencias.setor', '=', filters.setor);
 
   if (filters.q) {
     const term = `%${filters.q.trim()}%`;
@@ -77,6 +80,7 @@ export async function createPendencia(
     .insertInto('pendencias')
     .values({
       ...mainColumns(input),
+      setor: input.setor,
       data,
       usuario_cadastro_id: cadastro.id,
       usuario_cadastro_nome: cadastro.nome,

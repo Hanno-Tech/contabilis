@@ -1,8 +1,9 @@
 import { db } from '../../db/index.js';
+import type { Setor } from '../../db/types.js';
 import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 
 /**
- * Relatórios do Setor Pessoal. Todos devolvem o mesmo formato uniforme
+ * Relatórios dos setores pessoal e contábil. Todos devolvem o mesmo formato uniforme
  * (`Relatorio`) para que o frontend renderize a tabela e exporte para Excel de
  * forma genérica.
  */
@@ -385,8 +386,8 @@ export async function relClientesPorRegime(): Promise<Relatorio> {
   };
 }
 
-/** 6 — Pendências em aberto. */
-export async function relPendenciasAbertas(): Promise<Relatorio> {
+/** 6 — Pendências em aberto do setor. */
+export async function relPendenciasAbertas(setor: Setor): Promise<Relatorio> {
   const rows = await db
     .selectFrom('pendencias')
     .innerJoin('clientes', 'clientes.id', 'pendencias.cliente_id')
@@ -398,6 +399,7 @@ export async function relPendenciasAbertas(): Promise<Relatorio> {
       'pendencias.situacao',
     ])
     .where('pendencias.situacao', '=', 'Aberta')
+    .where('pendencias.setor', '=', setor)
     .orderBy('pendencias.data', 'desc')
     .execute();
 
@@ -420,8 +422,8 @@ export async function relPendenciasAbertas(): Promise<Relatorio> {
   };
 }
 
-/** 7 — Eventos futuros a lançar. */
-export async function relEventosALancar(): Promise<Relatorio> {
+/** 7 — Eventos futuros a lançar do setor. */
+export async function relEventosALancar(setor: Setor): Promise<Relatorio> {
   const rows = await db
     .selectFrom('eventos_futuros')
     .innerJoin('clientes', 'clientes.id', 'eventos_futuros.cliente_id')
@@ -431,8 +433,10 @@ export async function relEventosALancar(): Promise<Relatorio> {
       'eventos_futuros.created_at',
       'eventos_futuros.competencia',
       'eventos_futuros.colaborador_nome',
+      'eventos_futuros.descricao',
     ])
     .where('eventos_futuros.situacao', '=', 'A lançar')
+    .where('eventos_futuros.setor', '=', setor)
     .orderBy('eventos_futuros.competencia')
     .execute();
 
@@ -441,7 +445,10 @@ export async function relEventosALancar(): Promise<Relatorio> {
     colunas: [
       { key: 'codigo', label: 'Código' },
       { key: 'nome', label: 'Cliente' },
-      { key: 'colaborador', label: 'Colaborador' },
+      // Colaborador é coisa da folha; no contábil o evento diz o que lançar.
+      setor === 'pessoal'
+        ? { key: 'colaborador', label: 'Colaborador' }
+        : { key: 'descricao', label: 'Descrição' },
       { key: 'data_cadastro', label: 'Data do cadastro' },
       { key: 'competencia', label: 'Competência do lançamento' },
     ],
@@ -449,6 +456,7 @@ export async function relEventosALancar(): Promise<Relatorio> {
       codigo: r.codigo,
       nome: r.nome,
       colaborador: r.colaborador_nome ?? '',
+      descricao: r.descricao ?? '',
       data_cadastro: fmtData(
         r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
       ),

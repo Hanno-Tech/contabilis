@@ -23,6 +23,7 @@ import { fetchRelatorio, listRelatorios } from '../api/resources';
 import type { Relatorio } from '../types';
 import { EmptyState } from '../components/ui';
 import { exportRelatorioExcel } from '../lib/exportExcel';
+import type { Setor } from '../lib/setor';
 
 /** 'DD/MM/AAAA' ou 'MM/AAAA' -> 'AAAA-MM-DD' comparável (ou null se não for data). */
 function parseDataBr(value: unknown): string | null {
@@ -87,13 +88,16 @@ function filtrarLinhas(
   });
 }
 
-export function RelatoriosPage() {
+export function RelatoriosPage({ setor = 'pessoal' }: { setor?: Setor }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
 
-  const { data: catalogo } = useQuery({ queryKey: ['relatorios'], queryFn: listRelatorios });
+  const { data: catalogo } = useQuery({
+    queryKey: ['relatorios', setor],
+    queryFn: () => listRelatorios(setor),
+  });
 
   const { data: relatorio, isFetching } = useQuery({
     queryKey: ['relatorio', selected],

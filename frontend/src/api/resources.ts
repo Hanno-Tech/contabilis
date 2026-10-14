@@ -1,6 +1,11 @@
 import { api } from './client';
+import type { Setor } from '../lib/setor';
 import type {
   Alteracao,
+  ClienteContabilListItem,
+  FichaContabil,
+  FiltrosContabil,
+  Imovel,
   Dashboard,
   Cliente,
   ClienteFicha,
@@ -110,18 +115,20 @@ export async function revelarCredenciais(id: string) {
 
 // ------------------------------------------------------------------ Alterações
 export interface AlteracaoQuery {
-  entidade?: 'cliente' | 'ocorrencia' | 'pendencia' | 'evento';
+  setor: Setor;
+  entidade?: 'cliente' | 'ocorrencia' | 'pendencia' | 'evento' | 'imovel';
   entidade_id?: string;
   q?: string;
 }
 
-export async function listAlteracoes(params: AlteracaoQuery = {}) {
+export async function listAlteracoes(params: AlteracaoQuery) {
   const { data } = await api.get<Alteracao[]>('/alteracoes', { params });
   return data;
 }
 
 // ----------------------------------------------------------------- Ocorrências
 export interface OcorrenciaQuery {
+  setor: Setor;
   q?: string;
   cliente_id?: string;
   situacao?: string;
@@ -130,7 +137,7 @@ export interface OcorrenciaQuery {
   data_ate?: string;
 }
 
-export async function listOcorrencias(params: OcorrenciaQuery = {}) {
+export async function listOcorrencias(params: OcorrenciaQuery) {
   const { data } = await api.get<Ocorrencia[]>('/ocorrencias', { params });
   return data;
 }
@@ -161,6 +168,7 @@ export async function deleteOcorrencia(id: string) {
 
 // ----------------------------------------------------------------- Pendências
 export interface PendenciaQuery {
+  setor: Setor;
   q?: string;
   cliente_id?: string;
   situacao?: string;
@@ -169,7 +177,7 @@ export interface PendenciaQuery {
   data_ate?: string;
 }
 
-export async function listPendencias(params: PendenciaQuery = {}) {
+export async function listPendencias(params: PendenciaQuery) {
   const { data } = await api.get<Pendencia[]>('/pendencias', { params });
   return data;
 }
@@ -200,6 +208,7 @@ export async function deletePendencia(id: string) {
 
 // ------------------------------------------------------------- Eventos futuros
 export interface EventoQuery {
+  setor: Setor;
   q?: string;
   cliente_id?: string;
   situacao?: string;
@@ -207,7 +216,7 @@ export interface EventoQuery {
   comp_ate?: string;
 }
 
-export async function listEventos(params: EventoQuery = {}) {
+export async function listEventos(params: EventoQuery) {
   const { data } = await api.get<EventoFuturo[]>('/eventos-futuros', { params });
   return data;
 }
@@ -237,8 +246,8 @@ export async function deleteEvento(id: string) {
 }
 
 // ------------------------------------------------------------- Senhas do setor
-export async function listSenhasSetor(q?: string) {
-  const { data } = await api.get<SenhaSetor[]>('/senhas-setor', { params: q ? { q } : {} });
+export async function listSenhasSetor(setor: Setor, q?: string) {
+  const { data } = await api.get<SenhaSetor[]>('/senhas-setor', { params: { setor, q } });
   return data;
 }
 
@@ -267,8 +276,8 @@ export async function revelarSenhaSetor(id: string) {
 }
 
 // ----------------------------------------------------------------- Relatórios
-export async function listRelatorios() {
-  const { data } = await api.get<RelatorioResumo[]>('/relatorios');
+export async function listRelatorios(setor: Setor) {
+  const { data } = await api.get<RelatorioResumo[]>('/relatorios', { params: { setor } });
   return data;
 }
 
@@ -300,4 +309,67 @@ export async function updateEntidade(id: string, payload: Record<string, unknown
 
 export async function deleteEntidade(id: string) {
   await api.delete(`/entidades/${id}`);
+}
+
+// ------------------------------------------- Setor contábil: informações gerais
+export interface ClienteContabilQuery {
+  q?: string;
+  situacao?: string;
+  responsavel?: string;
+  prioridade?: string;
+  grupo?: string;
+  regime?: string;
+}
+
+export async function listClientesContabil(params: ClienteContabilQuery) {
+  const { data } = await api.get<ClienteContabilListItem[]>('/contabil/clientes', { params });
+  return data;
+}
+
+export async function fetchFiltrosContabil() {
+  const { data } = await api.get<FiltrosContabil>('/contabil/clientes/filtros');
+  return data;
+}
+
+export async function fetchFichaContabil(id: string) {
+  const { data } = await api.get<FichaContabil>(`/contabil/clientes/${id}`);
+  return data;
+}
+
+export async function updateFichaContabil(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<FichaContabil>(`/contabil/clientes/${id}`, payload);
+  return data;
+}
+
+// --------------------------------------------- Setor contábil: controle de imóveis
+export interface ImovelQuery {
+  q?: string;
+  cliente_id?: string;
+  tipo?: string;
+  situacao?: string;
+  forma_aquisicao?: string;
+}
+
+export async function listImoveis(params: ImovelQuery = {}) {
+  const { data } = await api.get<Imovel[]>('/imoveis', { params });
+  return data;
+}
+
+export async function fetchImovel(id: string) {
+  const { data } = await api.get<Imovel>(`/imoveis/${id}`);
+  return data;
+}
+
+export async function createImovel(payload: Record<string, unknown>) {
+  const { data } = await api.post<Imovel>('/imoveis', payload);
+  return data;
+}
+
+export async function updateImovel(id: string, payload: Record<string, unknown>) {
+  const { data } = await api.put<Imovel>(`/imoveis/${id}`, payload);
+  return data;
+}
+
+export async function deleteImovel(id: string) {
+  await api.delete(`/imoveis/${id}`);
 }

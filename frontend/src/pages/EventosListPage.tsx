@@ -24,6 +24,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchEventoOpcoes, listClientes, listEventos } from '../api/resources';
 import { EmptyState, Mono, formatCompetencia } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 /** Chip de situação do evento: âmbar (a lançar), verde (lançado), cinza (cancelado). */
 export function EventoStatusChip({ situacao }: { situacao: string }) {
@@ -53,7 +54,7 @@ export function EventoStatusChip({ situacao }: { situacao: string }) {
   );
 }
 
-export function EventosListPage() {
+export function EventosListPage({ setor = 'pessoal' }: { setor?: Setor }) {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [clienteId, setClienteId] = useState('');
@@ -65,9 +66,10 @@ export function EventosListPage() {
   const { data: clientes } = useQuery({ queryKey: ['clientes', 'todos'], queryFn: () => listClientes({}) });
 
   const { data: eventos, isFetching } = useQuery({
-    queryKey: ['eventos', { q, clienteId, situacao, compDe, compAte }],
+    queryKey: ['eventos', setor, { q, clienteId, situacao, compDe, compAte }],
     queryFn: () =>
       listEventos({
+        setor,
         q: q || undefined,
         cliente_id: clienteId || undefined,
         situacao: situacao || undefined,
@@ -89,7 +91,7 @@ export function EventosListPage() {
             {eventos ? `${eventos.length} evento(s)` : 'Carregando...'}
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/eventos-futuros/novo')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate(rota(setor, '/eventos-futuros/novo'))}>
           Novo evento
         </Button>
       </Stack>
@@ -97,7 +99,11 @@ export function EventosListPage() {
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <TextField
-            placeholder="Buscar por colaborador, descrição ou cliente"
+            placeholder={
+              setor === 'pessoal'
+                ? 'Buscar por colaborador, descrição ou cliente'
+                : 'Buscar por descrição ou cliente'
+            }
             value={q}
             onChange={(e) => setQ(e.target.value)}
             fullWidth
@@ -142,7 +148,7 @@ export function EventosListPage() {
               <TableRow>
                 <TableCell>Competência</TableCell>
                 <TableCell>Cliente</TableCell>
-                <TableCell>Colaborador</TableCell>
+                {setor === 'pessoal' && <TableCell>Colaborador</TableCell>}
                 <TableCell>Descrição</TableCell>
                 <TableCell>Lançado por</TableCell>
                 <TableCell>Situação</TableCell>
@@ -154,13 +160,13 @@ export function EventosListPage() {
                   key={ev.id}
                   hover
                   sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/eventos-futuros/${ev.id}/editar`)}
+                  onClick={() => navigate(rota(setor, `/eventos-futuros/${ev.id}/editar`))}
                 >
                   <TableCell>
                     <Mono>{formatCompetencia(ev.competencia)}</Mono>
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{ev.cliente_nome}</TableCell>
-                  <TableCell>{ev.colaborador_nome ?? '—'}</TableCell>
+                  {setor === 'pessoal' && <TableCell>{ev.colaborador_nome ?? '—'}</TableCell>}
                   <TableCell sx={{ maxWidth: 300 }}>{ev.descricao ?? '—'}</TableCell>
                   <TableCell>{ev.usuario_nome ?? '—'}</TableCell>
                   <TableCell>

@@ -1,7 +1,9 @@
 import { db } from '../../db/index.js';
+import type { Setor } from '../../db/types.js';
 import type { EventoInput } from './eventos.schema.js';
 
 export interface EventoFilters {
+  setor: Setor;
   q?: string;
   cliente_id?: string;
   situacao?: string;
@@ -29,6 +31,7 @@ const withCliente = () =>
     .innerJoin('clientes', 'clientes.id', 'eventos_futuros.cliente_id')
     .select([
       'eventos_futuros.id',
+      'eventos_futuros.setor',
       'eventos_futuros.cliente_id',
       'eventos_futuros.competencia',
       'eventos_futuros.colaborador_nome',
@@ -44,7 +47,7 @@ const withCliente = () =>
     ]);
 
 export async function listEventos(filters: EventoFilters) {
-  let query = withCliente();
+  let query = withCliente().where('eventos_futuros.setor', '=', filters.setor);
 
   if (filters.q) {
     const term = `%${filters.q.trim()}%`;
@@ -81,6 +84,7 @@ export async function createEvento(
     .insertInto('eventos_futuros')
     .values({
       ...mainColumns(input),
+      setor: input.setor,
       usuario_id: autor.id,
       usuario_nome: autor.nome,
     })

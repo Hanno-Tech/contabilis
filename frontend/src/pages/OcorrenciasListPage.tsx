@@ -24,6 +24,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchOcorrenciaOpcoes, listClientes, listOcorrencias } from '../api/resources';
 import { EmptyState, Mono, formatDate } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
 /** Chip de situação da ocorrência: verde (resolvido), vermelho (não), âmbar (em análise). */
 export function OcorrenciaStatusChip({ situacao }: { situacao: string }) {
@@ -59,7 +60,7 @@ function trunc(v: string | null, max = 90): string {
   return v.length > max ? `${v.slice(0, max)}…` : v;
 }
 
-export function OcorrenciasListPage() {
+export function OcorrenciasListPage({ setor = 'pessoal' }: { setor?: Setor }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [q, setQ] = useState('');
@@ -76,9 +77,10 @@ export function OcorrenciasListPage() {
   });
 
   const { data: ocorrencias, isFetching } = useQuery({
-    queryKey: ['ocorrencias', { q, clienteId, situacao, responsavelId, dataDe, dataAte }],
+    queryKey: ['ocorrencias', setor, { q, clienteId, situacao, responsavelId, dataDe, dataAte }],
     queryFn: () =>
       listOcorrencias({
+        setor,
         q: q || undefined,
         cliente_id: clienteId || undefined,
         situacao: situacao || undefined,
@@ -101,7 +103,7 @@ export function OcorrenciasListPage() {
             {ocorrencias ? `${ocorrencias.length} ocorrência(s)` : 'Carregando...'}
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/ocorrencias/nova')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate(rota(setor, '/ocorrencias/nova'))}>
           Nova ocorrência
         </Button>
       </Stack>
@@ -173,7 +175,7 @@ export function OcorrenciasListPage() {
                   key={o.id}
                   hover
                   sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/ocorrencias/${o.id}/editar`)}
+                  onClick={() => navigate(rota(setor, `/ocorrencias/${o.id}/editar`))}
                 >
                   <TableCell>
                     <Mono>{formatDate(o.data)}</Mono>

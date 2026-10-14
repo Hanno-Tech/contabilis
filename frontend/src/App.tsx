@@ -20,6 +20,11 @@ import { SenhaSetorFormPage } from './pages/SenhaSetorFormPage';
 import { EntidadesListPage } from './pages/EntidadesListPage';
 import { EntidadeFormPage } from './pages/EntidadeFormPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ContabilClientesListPage } from './pages/ContabilClientesListPage';
+import { ContabilClienteDetailPage } from './pages/ContabilClienteDetailPage';
+import { ContabilClienteFormPage } from './pages/ContabilClienteFormPage';
+import { ImoveisListPage } from './pages/ImoveisListPage';
+import { ImovelFormPage } from './pages/ImovelFormPage';
 
 export default function App() {
   return (
@@ -51,6 +56,29 @@ export default function App() {
           <Route path="/entidades" element={<EntidadesListPage />} />
           <Route path="/entidades/novo" element={<EntidadeFormPage mode="create" />} />
           <Route path="/entidades/:id/editar" element={<EntidadeFormPage mode="edit" />} />
+
+          {/* Setor contábil — as telas compartilhadas recebem o setor por prop */}
+          <Route path="/contabil" element={<Navigate to="/contabil/clientes" replace />} />
+          <Route path="/contabil/clientes" element={<ContabilClientesListPage />} />
+          <Route path="/contabil/clientes/:id" element={<ContabilClienteDetailPage />} />
+          <Route path="/contabil/clientes/:id/editar" element={<ContabilClienteFormPage />} />
+          <Route path="/contabil/imoveis" element={<ImoveisListPage />} />
+          <Route path="/contabil/imoveis/novo" element={<ImovelFormPage mode="create" />} />
+          <Route path="/contabil/imoveis/:id/editar" element={<ImovelFormPage mode="edit" />} />
+          <Route path="/contabil/ocorrencias" element={<OcorrenciasListPage key="contabil" setor="contabil" />} />
+          <Route path="/contabil/ocorrencias/nova" element={<OcorrenciaFormPage key="contabil" mode="create" setor="contabil" />} />
+          <Route path="/contabil/ocorrencias/:id/editar" element={<OcorrenciaFormPage key="contabil" mode="edit" setor="contabil" />} />
+          <Route path="/contabil/pendencias" element={<PendenciasListPage key="contabil" setor="contabil" />} />
+          <Route path="/contabil/pendencias/nova" element={<PendenciaFormPage key="contabil" mode="create" setor="contabil" />} />
+          <Route path="/contabil/pendencias/:id/editar" element={<PendenciaFormPage key="contabil" mode="edit" setor="contabil" />} />
+          <Route path="/contabil/eventos-futuros" element={<EventosListPage key="contabil" setor="contabil" />} />
+          <Route path="/contabil/eventos-futuros/novo" element={<EventoFormPage key="contabil" mode="create" setor="contabil" />} />
+          <Route path="/contabil/eventos-futuros/:id/editar" element={<EventoFormPage key="contabil" mode="edit" setor="contabil" />} />
+          <Route path="/contabil/senhas-setor" element={<SenhasSetorListPage key="contabil" setor="contabil" />} />
+          <Route path="/contabil/senhas-setor/nova" element={<SenhaSetorFormPage key="contabil" mode="create" setor="contabil" />} />
+          <Route path="/contabil/senhas-setor/:id/editar" element={<SenhaSetorFormPage key="contabil" mode="edit" setor="contabil" />} />
+          <Route path="/contabil/relatorios" element={<RelatoriosPage key="contabil" setor="contabil" />} />
+          <Route path="/contabil/alteracoes" element={<AlteracoesPage key="contabil" setor="contabil" />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

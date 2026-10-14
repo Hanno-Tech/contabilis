@@ -62,7 +62,7 @@ export interface Dashboard {
   eventos: EventoProximo[];
 }
 
-export type Entidade = 'cliente' | 'ocorrencia' | 'pendencia' | 'evento';
+export type Entidade = 'cliente' | 'ocorrencia' | 'pendencia' | 'evento' | 'imovel';
 
 export interface Alteracao {
   id: string;
@@ -73,6 +73,8 @@ export interface Alteracao {
   usuario_id: string | null;
   usuario_nome: string | null;
   alteracoes: FieldChange[];
+  /** null = cadastro geral do cliente (vale para os dois setores). */
+  setor: 'pessoal' | 'contabil' | null;
   created_at: string;
 }
 
@@ -343,4 +345,52 @@ export interface EntidadeCadastro {
   version: number;
   created_at: string;
   updated_at: string;
+}
+
+// ------------------------------------------------------------ Setor contábil
+
+export interface ClienteContabilListItem {
+  id: string;
+  codigo: number;
+  nome: string;
+  cnpj: string | null;
+  situacao: string;
+  regime_tributacao: string | null;
+  grupo_empresarial: string | null;
+  ramo_atividade: string | null;
+  responsavel: string | null;
+  prioridade: string | null;
+}
+
+export interface FiltrosContabil {
+  responsaveis: string[];
+  prioridades: string[];
+  grupos: string[];
+}
+
+/** Cadastro geral do cliente + ficha contábil (`cliente_contabil`). */
+export interface FichaContabil {
+  id: string;
+  codigo: number;
+  nome: string;
+  cnpj: string | null;
+  tipo_cliente: string | null;
+  regime_tributacao: string | null;
+  situacao: string;
+  data_evento_situacao: string | null;
+  /** null enquanto o cliente não tem a linha contábil (ficha vazia, versão 1). */
+  contabil: (Record<string, string | null> & { version: number }) | null;
+}
+
+/** Imóvel de um cliente (planilha "Controle de imóveis"). Campos livres em texto. */
+export interface Imovel extends Record<string, string | number | null> {
+  id: string;
+  cliente_id: string;
+  numero_ordem: number;
+  situacao: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  cliente_codigo: number;
+  cliente_nome: string;
 }

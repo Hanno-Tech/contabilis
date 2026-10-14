@@ -9,6 +9,8 @@ import { eventosRouter } from './modules/eventos/eventos.routes.js';
 import { relatoriosRouter } from './modules/relatorios/relatorios.routes.js';
 import { senhasSetorRouter } from './modules/senhas-setor/senhas-setor.routes.js';
 import { entidadesRouter } from './modules/entidades/entidades.routes.js';
+import { contabilRouter } from './modules/contabil/contabil.routes.js';
+import { imoveisRouter } from './modules/imoveis/imoveis.routes.js';
 
 export const apiRouter = Router();
 
@@ -23,3 +25,5 @@ apiRouter.use('/eventos-futuros', eventosRouter);
 apiRouter.use('/relatorios', relatoriosRouter);
 apiRouter.use('/senhas-setor', senhasSetorRouter);
 apiRouter.use('/entidades', entidadesRouter);
+apiRouter.use('/contabil', contabilRouter);
+apiRouter.use('/imoveis', imoveisRouter);

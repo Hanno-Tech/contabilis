@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { setorSchema } from '../../lib/setor.js';
 
 export const SITUACOES_OCORRENCIA = ['Resolvido', 'Não resolvido', 'Em análise'] as const;
 
@@ -8,6 +9,8 @@ const dateStr = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato AAAA-MM-DD');
 
 export const ocorrenciaInputSchema = z.object({
+  // Setor dono do registro — só vale na criação; a edição não troca de setor.
+  setor: setorSchema,
   cliente_id: z.string().uuid('Cliente inválido'),
   data: dateStr,
   ocorrencia: z.string().trim().min(1, 'Descreva o que aconteceu'),

@@ -30,8 +30,9 @@ import { useNavigate } from 'react-router-dom';
 import { deleteSenhaSetor, listSenhasSetor, revelarSenhaSetor } from '../api/resources';
 import { apiErrorMessage } from '../api/client';
 import { EmptyState } from '../components/ui';
+import { rota, type Setor } from '../lib/setor';
 
-export function SenhasSetorListPage() {
+export function SenhasSetorListPage({ setor = 'pessoal' }: { setor?: Setor }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
@@ -40,8 +41,8 @@ export function SenhasSetorListPage() {
   const [erro, setErro] = useState<string | null>(null);
 
   const { data: senhas, isFetching } = useQuery({
-    queryKey: ['senhas-setor', { q }],
-    queryFn: () => listSenhasSetor(q || undefined),
+    queryKey: ['senhas-setor', setor, { q }],
+    queryFn: () => listSenhasSetor(setor, q || undefined),
     placeholderData: keepPreviousData,
   });
 
@@ -81,7 +82,7 @@ export function SenhasSetorListPage() {
             {senhas ? `${senhas.length} senha(s)` : 'Carregando...'}
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/senhas-setor/nova')}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate(rota(setor, '/senhas-setor/nova'))}>
           Nova senha
         </Button>
       </Stack>
@@ -175,7 +176,7 @@ export function SenhasSetorListPage() {
                     <TableCell sx={{ maxWidth: 260, whiteSpace: 'pre-wrap' }}>{s.observacoes ?? '—'}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="Editar">
-                        <IconButton size="small" onClick={() => navigate(`/senhas-setor/${s.id}/editar`)}>
+                        <IconButton size="small" onClick={() => navigate(rota(setor, `/senhas-setor/${s.id}/editar`))}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>

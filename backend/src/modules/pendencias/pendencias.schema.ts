@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { setorSchema } from '../../lib/setor.js';
 
 export const SITUACOES_PENDENCIA = ['Aberta', 'Desconsiderada', 'Resolvida'] as const;
 
@@ -10,6 +11,8 @@ const text = z.string().trim().min(1).nullable().optional();
  * definido no servidor a partir da sessão.
  */
 export const pendenciaInputSchema = z.object({
+  // Setor dono do registro — só vale na criação; a edição não troca de setor.
+  setor: setorSchema,
   cliente_id: z.string().uuid('Cliente inválido'),
   descricao: z.string().trim().min(1, 'Descreva a pendência'),
   situacao: z.enum(SITUACOES_PENDENCIA).default('Aberta'),

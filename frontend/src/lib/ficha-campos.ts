@@ -37,7 +37,11 @@ import {
   VENCIMENTO_LAUDO_OPCOES,
 } from './listas';
 
-export type FieldType = 'text' | 'multiline' | 'date' | 'number' | 'select';
+/**
+ * `combo`: lista com digitação livre (valor fora da lista é aceito).
+ * `multiselect`: várias opções, gravadas juntas num texto separado por "; ".
+ */
+export type FieldType = 'text' | 'multiline' | 'date' | 'number' | 'select' | 'combo' | 'multiselect';
 export interface FieldDef {
   key: string;
   label: string;
