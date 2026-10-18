@@ -12,8 +12,9 @@
  *   --file <caminho>  planilha a importar (obrigatório)
  *   --aba <nome>      aba a ler (padrão: a primeira que começar com "Visão Geral")
  *   --dry-run         só analisa e relata, sem gravar nada
- *   --force           autoriza apagar ocorrências/pendências/eventos existentes,
- *                     que caem junto por CASCADE ao remover os clientes
+ *   --force           autoriza apagar ocorrências/pendências/eventos, imóveis e
+ *                     fichas contábeis existentes, que caem junto por CASCADE
+ *                     ao remover os clientes
  *
  * Decisões de mapeamento (acordadas com o setor):
  *   - linhas sem CÓDIGO DA EMPRESA não são importadas — são listadas no fim
@@ -30,6 +31,7 @@ import { resolve } from 'node:path';
 import XLSX from 'xlsx';
 import { closeDb, db } from './index.js';
 import { encrypt } from '../lib/crypto.js';
+import { CAMPOS_CONTABIL } from '../modules/contabil/contabil.campos.js';
 
 // ---------------------------------------------------------------- utilidades
 
@@ -266,15 +268,32 @@ async function limparClientes(force: boolean): Promise<void> {
   // Tudo que aponta para `clientes` cai por CASCADE — inclusive o trabalho já
   // lançado pela equipe, que não vem da planilha. Não dá para apagar isso sem
   // o usuário saber.
-  const dependentes = await Promise.all(
-    (['ocorrencias', 'pendencias', 'eventos_futuros'] as const).map(async (tabela) => {
-      const r = await db
-        .selectFrom(tabela)
-        .select(({ fn }) => fn.countAll<string>().as('n'))
-        .executeTakeFirst();
-      return { tabela, n: Number(r?.n ?? 0) };
-    }),
-  );
+  const contar = async (tabela: 'ocorrencias' | 'pendencias' | 'eventos_futuros' | 'imoveis') => {
+    const r = await db
+      .selectFrom(tabela)
+      .select(({ fn }) => fn.countAll<string>().as('n'))
+      .executeTakeFirst();
+    return { tabela: tabela as string, n: Number(r?.n ?? 0) };
+  };
+
+  // Todo cliente tem uma ficha contábil, vazia até o setor preencher: só conta
+  // quem já tem algum campo preenchido — é o que se perderia.
+  const fichasContabeis = async () => {
+    const r = await db
+      .selectFrom('cliente_contabil')
+      .select(({ fn }) => fn.countAll<string>().as('n'))
+      .where((eb) => eb.or(CAMPOS_CONTABIL.map((c) => eb(c.key, 'is not', null))))
+      .executeTakeFirst();
+    return { tabela: 'cliente_contabil (fichas preenchidas)', n: Number(r?.n ?? 0) };
+  };
+
+  const dependentes = await Promise.all([
+    contar('ocorrencias'),
+    contar('pendencias'),
+    contar('eventos_futuros'),
+    contar('imoveis'),
+    fichasContabeis(),
+  ]);
 
   const comDados = dependentes.filter((d) => d.n > 0);
   if (comDados.length && !force) {
