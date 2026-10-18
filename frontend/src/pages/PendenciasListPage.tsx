@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchPendenciaOpcoes, listClientes, listPendencias } from '../api/resources';
 import { EmptyState, Mono, formatDate } from '../components/ui';
 import { rota, type Setor } from '../lib/setor';
+import { CampoData } from '../components/CampoData';
 
 /** Chip de situação da pendência: âmbar (aberta), verde (resolvida), cinza (desconsiderada). */
 export function PendenciaStatusChip({ situacao }: { situacao: string }) {
@@ -143,8 +144,8 @@ export function PendenciasListPage({ setor = 'pessoal' }: { setor?: Setor }) {
               </MenuItem>
             ))}
           </TextField>
-          <TextField label="Data de" type="date" value={dataDe} onChange={(e) => setDataDe(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
-          <TextField label="Data até" type="date" value={dataAte} onChange={(e) => setDataAte(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
+          <CampoData label="Data de" value={dataDe} onChange={setDataDe} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
+          <CampoData label="Data até" value={dataAte} onChange={setDataAte} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
         </Stack>
       </Paper>
 

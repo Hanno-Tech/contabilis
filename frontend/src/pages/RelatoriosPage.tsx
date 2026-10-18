@@ -24,6 +24,7 @@ import type { Relatorio } from '../types';
 import { EmptyState } from '../components/ui';
 import { exportRelatorioExcel } from '../lib/exportExcel';
 import type { Setor } from '../lib/setor';
+import { CampoData } from '../components/CampoData';
 
 /** 'DD/MM/AAAA' ou 'MM/AAAA' -> 'AAAA-MM-DD' comparável (ou null se não for data). */
 function parseDataBr(value: unknown): string | null {
@@ -189,8 +190,8 @@ export function RelatoriosPage({ setor = 'pessoal' }: { setor?: Setor }) {
               />
               {colsData.length > 0 && (
                 <>
-                  <TextField label="Data de" type="date" value={dataDe} onChange={(e) => setDataDe(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
-                  <TextField label="Data até" type="date" value={dataAte} onChange={(e) => setDataAte(e.target.value)} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
+                  <CampoData label="Data de" value={dataDe} onChange={setDataDe} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
+                  <CampoData label="Data até" value={dataAte} onChange={setDataAte} size="small" sx={{ minWidth: 150 }} InputLabelProps={{ shrink: true }} />
                 </>
               )}
             </Stack>

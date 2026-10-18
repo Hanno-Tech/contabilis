@@ -1,5 +1,6 @@
 import { Autocomplete, Grid, MenuItem, TextField, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
+import { CampoData } from './CampoData';
 import { SEPARADOR_MULTI } from '../lib/contabil-campos';
 import type { FieldDef } from '../lib/ficha-campos';
 
@@ -90,6 +91,19 @@ export function campoEditavel(
     );
   }
 
+  if (f.type === 'date') {
+    return celula(
+      <CampoData
+        id={f.key}
+        label={label}
+        value={value}
+        onChange={(v) => setField(f.key, v)}
+        fullWidth
+        size="small"
+      />,
+    );
+  }
+
   return celula(
     <TextField
       id={f.key}
@@ -98,11 +112,10 @@ export function campoEditavel(
       onChange={(e) => setField(f.key, e.target.value)}
       fullWidth
       size="small"
-      type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+      type={f.type === 'number' ? 'number' : 'text'}
       inputProps={f.type === 'number' ? { min: 0, step: '0.01' } : undefined}
       multiline={f.type === 'multiline'}
       minRows={f.type === 'multiline' ? 3 : undefined}
-      InputLabelProps={f.type === 'date' ? { shrink: true } : undefined}
     />,
   );
 }

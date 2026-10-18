@@ -25,9 +25,11 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import { SectionCard } from '../components/ui';
 import { rota, type Setor } from '../lib/setor';
+import { CampoData } from '../components/CampoData';
+import { hojeIso } from '../lib/datas';
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = hojeIso;
 
 interface FormState {
   cliente_id: string;
@@ -191,15 +193,13 @@ export function OcorrenciaFormPage({
             </TextField>
           </Grid>
           <Grid item xs={12} md={4}>
-            <TextField
+            <CampoData
               label="Data"
-              type="date"
               value={form.data}
-              onChange={(e) => setField('data', e.target.value)}
+              onChange={(v) => setField('data', v)}
               required
               fullWidth
               size="small"
-              InputLabelProps={{ shrink: true }}
             />
           </Grid>
           <Grid item xs={12}>

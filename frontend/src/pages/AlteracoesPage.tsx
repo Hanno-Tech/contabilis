@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listAlteracoes } from '../api/resources';
 import { EmptyState, Mono } from '../components/ui';
+import { isoParaBr, mesIsoParaBr } from '../lib/datas';
 import { rota, type Setor } from '../lib/setor';
 import type { Alteracao, Entidade, FieldChange } from '../types';
 
@@ -35,9 +36,15 @@ function formatDateTime(iso: string): string {
   })}`;
 }
 
-/** Valor completo do campo (vazio → '—'), preservando quebras de linha. */
-function valorCompleto(v: string | null): string {
-  return v === null || v === '' ? '—' : v;
+/**
+ * Valor completo do campo (vazio → '—'), preservando quebras de linha. Datas
+ * gravadas em ISO aparecem como dd/mm/aaaa; a competência, como mm/aaaa.
+ */
+function valorCompleto(v: string | null, campo?: string): string {
+  if (v === null || v === '') return '—';
+  if (campo === 'competencia' && /^\d{4}-\d{2}/.test(v)) return mesIsoParaBr(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return isoParaBr(v);
+  return v;
 }
 
 function ChangeRow({ change }: { change: FieldChange }) {
@@ -56,7 +63,7 @@ function ChangeRow({ change }: { change: FieldChange }) {
           wordBreak: 'break-word',
         }}
       >
-        {valorCompleto(change.de)}
+        {valorCompleto(change.de, change.campo)}
       </Typography>
       <Box component="span" sx={{ color: 'text.disabled' }}>
         →
@@ -65,7 +72,7 @@ function ChangeRow({ change }: { change: FieldChange }) {
         variant="body2"
         sx={{ color: 'success.main', fontWeight: 600, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
       >
-        {valorCompleto(change.para)}
+        {valorCompleto(change.para, change.campo)}
       </Typography>
     </Box>
   );

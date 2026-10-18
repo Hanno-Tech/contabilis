@@ -18,6 +18,7 @@ import { apiErrorMessage, isConflict } from '../api/client';
 import { createCliente, fetchCliente, updateCliente } from '../api/resources';
 import { SectionCard, formatDocumento, isValidDocumento } from '../components/ui';
 import { RESPONSAVEL_FOLHA_OPCOES, TIPO_CLIENTE_OPCOES } from '../lib/listas';
+import { CampoData } from '../components/CampoData';
 
 const SITUACOES = ['Ativa', 'Ativa sem movimento', 'Baixada', 'Devolvida', 'Transferida', 'Paralisada', 'Em constituição'];
 const REGIME_OPCOES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real', 'SIMEI', 'Não se aplica'];
@@ -220,7 +221,7 @@ export function InformacoesGeraisFormPage({ mode }: { mode: 'create' | 'edit' })
             </TextField>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField label="Data da situação" type="date" value={form.data_evento_situacao} onChange={(e) => setField('data_evento_situacao', e.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            <CampoData label="Data da situação" value={form.data_evento_situacao} onChange={(v) => setField('data_evento_situacao', v)} fullWidth size="small" />
           </Grid>
         </Grid>
       </SectionCard>

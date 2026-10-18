@@ -37,6 +37,7 @@ import {
   type FieldDef,
 } from '../lib/ficha-campos';
 import type { ClienteSindicato } from '../types';
+import { CampoData } from '../components/CampoData';
 
 const TIPO_LABEL: Record<string, string> = {
   seguro_desemprego: 'Seguro Desemprego',
@@ -243,6 +244,13 @@ export function ClienteFormPage() {
         </Grid>
       );
     }
+    if (f.type === 'date') {
+      return (
+        <Grid key={f.key} item xs={12} sm={f.wide ? 12 : 6} md={f.wide ? 12 : 4}>
+          <CampoData label={f.label} value={value} onChange={(v) => setField(f.key, v)} fullWidth size="small" />
+        </Grid>
+      );
+    }
     return (
       <Grid key={f.key} item xs={12} sm={f.wide ? 12 : 6} md={f.wide ? 12 : 4}>
         <TextField
@@ -251,10 +259,9 @@ export function ClienteFormPage() {
           onChange={(e) => setField(f.key, e.target.value)}
           fullWidth
           size="small"
-          type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+          type={f.type === 'number' ? 'number' : 'text'}
           multiline={f.type === 'multiline'}
           minRows={f.type === 'multiline' ? 3 : undefined}
-          InputLabelProps={f.type === 'date' ? { shrink: true } : undefined}
         />
       </Grid>
     );

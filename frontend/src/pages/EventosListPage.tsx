@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchEventoOpcoes, listClientes, listEventos } from '../api/resources';
 import { EmptyState, Mono, formatCompetencia } from '../components/ui';
 import { rota, type Setor } from '../lib/setor';
+import { CampoData } from '../components/CampoData';
 
 /** Chip de situação do evento: âmbar (a lançar), verde (lançado), cinza (cancelado). */
 export function EventoStatusChip({ situacao }: { situacao: string }) {
@@ -132,8 +133,8 @@ export function EventosListPage({ setor = 'pessoal' }: { setor?: Setor }) {
               </MenuItem>
             ))}
           </TextField>
-          <TextField label="Competência de" type="month" value={compDe} onChange={(e) => setCompDe(e.target.value)} size="small" sx={{ minWidth: 160 }} InputLabelProps={{ shrink: true }} />
-          <TextField label="Competência até" type="month" value={compAte} onChange={(e) => setCompAte(e.target.value)} size="small" sx={{ minWidth: 160 }} InputLabelProps={{ shrink: true }} />
+          <CampoData mes label="Competência de" value={compDe} onChange={setCompDe} size="small" sx={{ minWidth: 160 }} InputLabelProps={{ shrink: true }} />
+          <CampoData mes label="Competência até" value={compAte} onChange={setCompAte} size="small" sx={{ minWidth: 160 }} InputLabelProps={{ shrink: true }} />
         </Stack>
       </Paper>
 

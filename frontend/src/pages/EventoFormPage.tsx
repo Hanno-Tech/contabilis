@@ -24,9 +24,11 @@ import {
 } from '../api/resources';
 import { ReadField, SectionCard } from '../components/ui';
 import { rota, type Setor } from '../lib/setor';
+import { CampoData } from '../components/CampoData';
+import { mesAtualIso } from '../lib/datas';
 
 const strOrNull = (s: string) => (s.trim() === '' ? null : s);
-const mesAtual = () => new Date().toISOString().slice(0, 7);
+const mesAtual = mesAtualIso;
 
 interface FormState {
   cliente_id: string;
@@ -167,15 +169,14 @@ export function EventoFormPage({
             </TextField>
           </Grid>
           <Grid item xs={12} md={4}>
-            <TextField
+            <CampoData
+              mes
               label="Competência de lançamento"
-              type="month"
               value={form.competencia}
-              onChange={(e) => setField('competencia', e.target.value)}
+              onChange={(v) => setField('competencia', v)}
               required
               fullWidth
               size="small"
-              InputLabelProps={{ shrink: true }}
             />
           </Grid>
           {/* Colaborador é coisa da folha — o evento contábil se descreve pela descrição. */}

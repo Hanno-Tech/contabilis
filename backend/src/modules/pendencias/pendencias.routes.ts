@@ -16,8 +16,11 @@ import * as audit from '../audit/audit.repository.js';
 export const pendenciasRouter = Router();
 pendenciasRouter.use(requireAuth);
 
-/** Data do dia (servidor) no formato YYYY-MM-DD. */
-const hoje = () => new Date().toISOString().slice(0, 10);
+/**
+ * Dia do cadastro (YYYY-MM-DD) no fuso de São Paulo. O servidor roda em UTC, e
+ * `toISOString` viraria o dia às 21h, gravando a pendência com a data de amanhã.
+ */
+const hoje = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
 // Opções para selects/filtros (antes de '/:id')
 pendenciasRouter.get(
