@@ -56,16 +56,15 @@ export function ImovelSituacaoChip({ situacao }: { situacao: string }) {
   return <Pill label={situacao} tone={situacao === 'Ativo' ? 'success' : 'neutral'} />;
 }
 
-/** Andamento da integralização: só para imóveis recebidos por integralização. */
+/**
+ * Andamento da integralização. Aparece para imóveis recebidos por
+ * integralização e para qualquer um que já tenha etapa marcada.
+ */
 function IntegralizacaoChip({ imovel }: { imovel: Imovel }) {
-  if (imovel.forma_aquisicao !== FORMA_INTEGRALIZACAO) return <>—</>;
+  const feitas = progressoIntegralizacao(imovel);
+  if (imovel.forma_aquisicao !== FORMA_INTEGRALIZACAO && feitas === 0) return <>—</>;
   if (imovel.transferencia_finalizada === 'Sim') return <Pill label="Finalizada" tone="success" />;
-  return (
-    <Pill
-      label={`${progressoIntegralizacao(imovel)} de ${ETAPAS_INTEGRALIZACAO.length} etapas`}
-      tone="warning"
-    />
-  );
+  return <Pill label={`${feitas} de ${ETAPAS_INTEGRALIZACAO.length} etapas`} tone="warning" />;
 }
 
 export function ImoveisListPage() {

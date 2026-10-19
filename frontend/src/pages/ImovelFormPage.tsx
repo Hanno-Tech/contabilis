@@ -156,15 +156,18 @@ export function ImovelFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </Grid>
       </SectionCard>
 
-      {QUADROS_IMOVEL.map((q) =>
-        q.showIf && !q.showIf(form) ? null : (
-          <SectionCard key={q.title} title={q.title}>
-            <Grid container spacing={2}>
-              {q.fields.map((f) => campoEditavel(f, form, setField))}
-            </Grid>
-          </SectionCard>
-        ),
-      )}
+      {QUADROS_IMOVEL.map((q) => (
+        <SectionCard key={q.title} title={q.title}>
+          {q.nota && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              {q.nota}
+            </Typography>
+          )}
+          <Grid container spacing={2}>
+            {q.fields.map((f) => campoEditavel(f, form, setField, q.perguntas))}
+          </Grid>
+        </SectionCard>
+      ))}
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
         <Button component={RouterLink} to="/contabil/imoveis">

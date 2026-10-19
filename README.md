@@ -355,8 +355,9 @@ Regras que vieram da planilha:
 - As perguntas de estoque só aparecem para quem possui estoque; a margem de
   valor agregado, para quem não envia o CMV/CPV. "Tipos de estoque" aceita
   vários valores.
-- O quadro de integralização do imóvel só aparece quando a forma de aquisição
-  é "Integralização".
+- O quadro "Processo de integralização" do imóvel fica sempre visível, como na
+  planilha; a lista mostra o andamento ("3 de 6 etapas") dos imóveis recebidos
+  por integralização ou que já tenham alguma etapa marcada.
 
 Listas suspensas do setor ficam em `frontend/src/lib/contabil-campos.ts`; as
 colunas, os rótulos da auditoria e os relatórios saem de

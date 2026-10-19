@@ -221,10 +221,14 @@ export const ETAPAS_INTEGRALIZACAO = [
   'transferencia_finalizada',
 ];
 
-const integralizacao = (f: Record<string, string>) => f.forma_aquisicao === FORMA_INTEGRALIZACAO;
-
 /** Quadros do imóvel, nos grupos da planilha FRSoc-019. */
-export const QUADROS_IMOVEL: { title: string; fields: FieldDef[]; showIf?: FieldDef['showIf'] }[] = [
+export const QUADROS_IMOVEL: {
+  title: string;
+  nota?: string;
+  /** Perguntas longas: o texto vai acima do campo em vez de virar rótulo flutuante (cortado). */
+  perguntas?: boolean;
+  fields: FieldDef[];
+}[] = [
   {
     title: 'Descrição detalhada do imóvel',
     fields: [
@@ -245,7 +249,8 @@ export const QUADROS_IMOVEL: { title: string; fields: FieldDef[]; showIf?: Field
   },
   {
     title: 'Processo de integralização',
-    showIf: integralizacao,
+    perguntas: true,
+    nota: 'Acompanhe aqui a transferência do imóvel para a holding. As seis etapas valem para imóveis recebidos por integralização.',
     fields: [
       { key: 'itbi_isencao_obtida', label: 'Obtida a declaração de isenção de ITBI?', type: 'select', options: SIM_NAO },
       { key: 'itbi_diferenca_paga', label: 'Pago diferença de ITBI?', type: 'select', options: SIM_NAO },
