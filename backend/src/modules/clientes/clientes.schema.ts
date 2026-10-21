@@ -47,6 +47,9 @@ const orgaoCredSchema = z.object({
   link: text,
   usuario: text,
   senha: text,
+  // E-mail usado no cadastro do usuário no órgão (ex.: Seguro Desemprego) e a senha dele.
+  email: text,
+  email_senha: text,
 });
 
 const empregadoDomesticoSchema = z
@@ -61,7 +64,6 @@ const empregadoDomesticoSchema = z
 const sindicatoSchema = z.object({
   sindicato: text,
   convencao_aplicavel_nome: text,
-  situacao_convencao: text,
   recolhe_contribuicao: text,
 });
 
@@ -110,7 +112,9 @@ export const folhaInputSchema = z.object({
   venc_procuracao_rfb_situacao: text,
   venc_procuracao_det_fgts: dateStr,
   venc_procuracao_det_fgts_situacao: text,
+  venc_procuracao_det_fgts_data_situacao: dateStr,
   venc_procuracao_econsignado_situacao: text,
+  venc_procuracao_econsignado_data_situacao: dateStr,
   venc_procuracao_det: dateStr,
   venc_procuracao_fgts: dateStr,
   venc_procuracao_econsignado: dateStr,

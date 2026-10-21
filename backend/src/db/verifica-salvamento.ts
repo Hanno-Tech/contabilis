@@ -85,10 +85,10 @@ async function run() {
   const casos: Array<{ nome: string; campo: string; valores: [string, string]; junto?: Record<string, unknown> }> = [
     { nome: 'procurações — data da DET/FGTS', campo: 'venc_procuracao_det_fgts', valores: ['2031-12-31', '2030-06-15'] },
     {
-      nome: 'procurações — situação da RFB',
-      campo: 'venc_procuracao_rfb_situacao',
-      valores: ['Não se aplica', 'Sem procuração'],
-      junto: { venc_procuracao_rfb: null },
+      nome: 'procurações — situação do e-Consignado',
+      campo: 'venc_procuracao_econsignado_situacao',
+      valores: ['Não se aplica', 'A fazer'],
+      junto: { venc_procuracao_econsignado: null },
     },
     { nome: 'tributárias — fator R', campo: 'fator_r', valores: ['Sim', 'Não'] },
     { nome: 'admissão — concede plano de saúde', campo: 'concede_plano_saude', valores: ['Sim', 'Não'] },

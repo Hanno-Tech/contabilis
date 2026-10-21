@@ -18,6 +18,7 @@ import type {
   Ocorrencia,
   OcorrenciaOpcoes,
   Pendencia,
+  QuadroCamposRelatorio,
   Relatorio,
   RelatorioResumo,
   SenhaSetor,
@@ -283,6 +284,16 @@ export async function listRelatorios(setor: Setor) {
 
 export async function fetchRelatorio(key: string) {
   const { data } = await api.get<Relatorio>(`/relatorios/${key}`);
+  return data;
+}
+
+export async function fetchCamposPersonalizado() {
+  const { data } = await api.get<QuadroCamposRelatorio[]>('/relatorios/personalizado/campos');
+  return data;
+}
+
+export async function gerarRelatorioPersonalizado(body: { campos: string[]; situacao: 'ativos' | 'todos' }) {
+  const { data } = await api.post<Relatorio>('/relatorios/personalizado', body);
   return data;
 }
 

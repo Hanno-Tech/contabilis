@@ -63,10 +63,12 @@ export const CLIENTE_FOLHA_LABELS: Record<string, string> = {
   venc_procuracao_rfb_situacao: 'Situação da procuração RFB',
   venc_procuracao_det_fgts: 'Vencimento procuração DET e FGTS Digital',
   venc_procuracao_det_fgts_situacao: 'Situação da procuração DET/FGTS',
+  venc_procuracao_det_fgts_data_situacao: 'Data da situação da procuração DET/FGTS',
   venc_procuracao_det: 'Vencimento procuração DET',
   venc_procuracao_fgts: 'Vencimento procuração FGTS Digital',
   venc_procuracao_econsignado: 'Vencimento procuração e-Consignado',
   venc_procuracao_econsignado_situacao: 'Situação da procuração e-Consignado',
+  venc_procuracao_econsignado_data_situacao: 'Data da situação da procuração e-Consignado',
   emails_notificacao_det: 'E-mails de notificação DET',
   // INSS
   inss_tipo_segurado: 'INSS — Tipo de segurado',

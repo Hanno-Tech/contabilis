@@ -11,7 +11,7 @@
  *   npm run backfill:situacoes -- --file "../planilha.xlsx" [--dry-run]
  *
  * É idempotente e conservador: só grava onde a situação está vazia. Quem já
- * tem situação (inclusive o 'Data informada' posto pela migration) fica como está.
+ * tem situação (inclusive o 'Ativa' posto pela migration) fica como está.
  */
 import 'dotenv/config';
 import { existsSync } from 'node:fs';
@@ -37,8 +37,8 @@ const texto = (v: Celula): string | null => {
 function situacaoProcuracao(bruto: string | null): string | null {
   if (!bruto) return null;
   const s = bruto.toLowerCase();
-  if (s.startsWith('sem procuração') || s.startsWith('sem procuracao')) return 'Sem procuração';
-  if (s === 'não possui' || s === 'nao possui') return 'Sem procuração';
+  if (s.startsWith('sem procuração') || s.startsWith('sem procuracao')) return 'Não se aplica';
+  if (s === 'não possui' || s === 'nao possui') return 'Não se aplica';
   if (s.startsWith('não se aplica') || s.startsWith('nao se aplica')) return 'Não se aplica';
   // "EXPIRADA" e "-" não dizem se existe procuração; ficam para a equipe decidir.
   return null;
@@ -59,7 +59,6 @@ function situacaoLaudo(bruto: string | null): string | null {
  * título, não pela posição, para o script sobreviver a mudanças de layout.
  */
 const ALVOS = [
-  { titulo: /procuraç(ã|a)o rfb/i, coluna: 'venc_procuracao_rfb_situacao', mapear: situacaoProcuracao },
   { titulo: /det e fgts|det\/fgts/i, coluna: 'venc_procuracao_det_fgts_situacao', mapear: situacaoProcuracao },
   { titulo: /e-?consignado/i, coluna: 'venc_procuracao_econsignado_situacao', mapear: situacaoProcuracao },
   { titulo: /^data de vencimento$/i, coluna: 'data_vencimento_laudo_situacao', mapear: situacaoLaudo },
@@ -131,7 +130,6 @@ async function run() {
     .select([
       'clientes.id',
       'clientes.codigo',
-      'cliente_folha.venc_procuracao_rfb_situacao',
       'cliente_folha.venc_procuracao_det_fgts_situacao',
       'cliente_folha.venc_procuracao_econsignado_situacao',
       'cliente_folha.data_vencimento_laudo_situacao',

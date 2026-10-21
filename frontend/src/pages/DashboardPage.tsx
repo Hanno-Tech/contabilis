@@ -12,6 +12,8 @@ import {
   Grid,
   Paper,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -190,9 +192,16 @@ function VencimentoRow({ v, onClick }: { v: Vencimento; onClick: () => void }) {
   );
 }
 
-function VencimentosBlock({ data }: { data: Vencimento[] }) {
+const CATEGORIAS_VENCIMENTO: Array<{ key: Vencimento['categoria']; label: string }> = [
+  { key: 'laudo', label: 'Laudos SST' },
+  { key: 'procuracao', label: 'Procurações' },
+];
+
+function VencimentosBlock({ data: todos }: { data: Vencimento[] }) {
   const navigate = useNavigate();
+  const [categoria, setCategoria] = useState<Vencimento['categoria']>('laudo');
   const [faixa, setFaixa] = useState<string>('todos');
+  const data = useMemo(() => todos.filter((v) => v.categoria === categoria), [todos, categoria]);
 
   const contagem = useMemo(() => {
     const c: Record<string, number> = {};
@@ -214,6 +223,23 @@ function VencimentosBlock({ data }: { data: Vencimento[] }) {
         </Typography>
       }
     >
+      {/* Cada tipo de alerta tem a sua lista — laudos e procurações não se misturam. */}
+      <Tabs
+        value={categoria}
+        onChange={(_, v) => {
+          setCategoria(v);
+          setFaixa('todos');
+        }}
+        sx={{ mb: 1.5, minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5 } }}
+      >
+        {CATEGORIAS_VENCIMENTO.map((c) => (
+          <Tab
+            key={c.key}
+            value={c.key}
+            label={`${c.label} · ${todos.filter((v) => v.categoria === c.key).length}`}
+          />
+        ))}
+      </Tabs>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
         <Chip
           label={`Todos · ${data.length}`}
