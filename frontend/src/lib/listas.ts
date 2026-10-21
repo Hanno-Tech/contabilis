@@ -74,12 +74,24 @@ export const VENCIMENTO_LAUDO_OPCOES = [
 ];
 
 /**
- * Procurações seguem o mesmo padrão do laudo. Sem isso, "não tem procuração"
- * ficava indistinguível de "ainda não cadastramos" — e o cliente nunca saía da
- * lista de fichas incompletas.
+ * Procurações (e-Consignado e DET/FGTS): situação + data da situação + data de
+ * vencimento. O vencimento só é acompanhado (alertas, relatórios) quando a
+ * situação é "Ativa".
  */
-export const PROCURACAO_DATA = 'Data informada';
-export const PROCURACAO_OPCOES = ['Sem procuração', 'Não se aplica', PROCURACAO_DATA];
+export const PROCURACAO_ATIVA = 'Ativa';
+export const PROCURACAO_OPCOES = [
+  'Não se aplica',
+  'Empresa em constituição',
+  'A fazer',
+  'Em andamento',
+  PROCURACAO_ATIVA,
+  'Empresa inativa',
+  'Empresa sem movimento – cliente não localizado',
+  'Empresa sem movimento – cliente localizado mas ignorou a comunicação',
+  'Cliente não realizou o procedimento e foi cientificado dos riscos',
+  'Empresa com contrato suspenso',
+  'Aguardando alinhamento interno – verificar no módulo "ocorrências"',
+];
 
 // -------------------------------------------- Forma de envio dos documentos
 export const FORMA_ENVIO_OPCOES = [
@@ -146,7 +158,6 @@ export const RESPONSAVEL_FOLHA_OPCOES = [
   'Fernanda',
   'Sem folha',
 ];
-export const SITUACAO_CONVENCAO_OPCOES = ['Vigente', 'Vencida', 'Não se aplica'];
 
 /** Filiação sindical — substitui o campo de texto livre do quadro sindical. */
 export const FILIACAO_SINDICAL_OPCOES = [

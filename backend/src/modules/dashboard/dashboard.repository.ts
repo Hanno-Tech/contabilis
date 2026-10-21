@@ -1,7 +1,7 @@
 import { sql, type ExpressionBuilder } from 'kysely';
 import { db } from '../../db/index.js';
 import type { Database } from '../../db/types.js';
-import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
+import { PROCURACAO_ATIVA, TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 
 /**
  * Métricas da tela inicial (dashboard). Tudo derivado dos dados já existentes:
@@ -21,7 +21,7 @@ function diasAte(dateStr: string): number {
 
 export interface Vencimento {
   categoria: 'procuracao' | 'laudo';
-  tipo: string; // ex.: 'Procuração RFB', 'Laudo SST'
+  tipo: string; // ex.: 'Procuração e-Consignado', 'Laudo SST'
   data: string; // YYYY-MM-DD
   dias: number; // dias até o vencimento (negativo = vencido)
   registro_id: string; // cliente_id
@@ -44,14 +44,14 @@ async function getVencimentos(): Promise<Vencimento[]> {
       'clientes.id',
       'clientes.codigo',
       'clientes.nome',
-      'cliente_folha.venc_procuracao_rfb',
       'cliente_folha.venc_procuracao_det_fgts',
+      'cliente_folha.venc_procuracao_det_fgts_situacao',
       'cliente_folha.venc_procuracao_econsignado',
+      'cliente_folha.venc_procuracao_econsignado_situacao',
       'cliente_folha.data_vencimento_laudo',
     ])
     .where((eb) =>
       eb.or([
-        eb('cliente_folha.venc_procuracao_rfb', 'is not', null),
         eb('cliente_folha.venc_procuracao_det_fgts', 'is not', null),
         eb('cliente_folha.venc_procuracao_econsignado', 'is not', null),
         eb('cliente_folha.data_vencimento_laudo', 'is not', null),
@@ -59,16 +59,17 @@ async function getVencimentos(): Promise<Vencimento[]> {
     )
     .execute();
 
-  const procFields: Array<[keyof (typeof clientes)[number], string]> = [
-    ['venc_procuracao_rfb', 'Procuração RFB'],
-    ['venc_procuracao_det_fgts', 'Procuração DET/FGTS'],
-    ['venc_procuracao_econsignado', 'Procuração e-Consignado'],
+  // Só procuração "Ativa" tem vencimento a acompanhar; nas demais situações a
+  // data (se existir) é resquício e não deve gerar alerta.
+  const procFields: Array<[keyof (typeof clientes)[number], keyof (typeof clientes)[number], string]> = [
+    ['venc_procuracao_econsignado', 'venc_procuracao_econsignado_situacao', 'Procuração e-Consignado'],
+    ['venc_procuracao_det_fgts', 'venc_procuracao_det_fgts_situacao', 'Procuração DET e FGTS'],
   ];
 
   for (const c of clientes) {
-    for (const [field, tipo] of procFields) {
+    for (const [field, situacao, tipo] of procFields) {
       const data = c[field] as string | null;
-      if (!data) continue;
+      if (!data || c[situacao] !== PROCURACAO_ATIVA) continue;
       const dias = diasAte(data);
       if (!dentroDaJanela(dias)) continue;
       itens.push({

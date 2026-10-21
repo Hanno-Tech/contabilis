@@ -175,8 +175,10 @@ const FOLHA_COLUMNS = [
   'cliente_folha.venc_procuracao_rfb_situacao',
   'cliente_folha.venc_procuracao_det_fgts',
   'cliente_folha.venc_procuracao_det_fgts_situacao',
+  'cliente_folha.venc_procuracao_det_fgts_data_situacao',
   'cliente_folha.venc_procuracao_econsignado',
   'cliente_folha.venc_procuracao_econsignado_situacao',
+  'cliente_folha.venc_procuracao_econsignado_data_situacao',
   'cliente_folha.emails_notificacao_det',
   'cliente_folha.inss_tipo_segurado',
   'cliente_folha.inss_nit',
@@ -251,8 +253,10 @@ const COLUNAS_FOLHA_EDITAVEIS = [
   'venc_procuracao_rfb_situacao',
   'venc_procuracao_det_fgts',
   'venc_procuracao_det_fgts_situacao',
+  'venc_procuracao_det_fgts_data_situacao',
   'venc_procuracao_econsignado',
   'venc_procuracao_econsignado_situacao',
+  'venc_procuracao_econsignado_data_situacao',
   'venc_procuracao_det',
   'venc_procuracao_fgts',
   'emails_notificacao_det',
@@ -347,7 +351,6 @@ export async function getFicha(id: string) {
       'cliente_sindicatos.id',
       'cliente_sindicatos.sindicato',
       'cliente_sindicatos.convencao_aplicavel_nome',
-      'cliente_sindicatos.situacao_convencao',
       'cliente_sindicatos.recolhe_contribuicao',
       'cliente_sindicatos.ordem',
     ])
@@ -393,14 +396,12 @@ async function replaceSindicatos(
       (s) =>
         s.sindicato ||
         s.convencao_aplicavel_nome ||
-        s.situacao_convencao ||
         s.recolhe_contribuicao,
     )
     .map((s, i) => ({
       cliente_id: clienteId,
       sindicato: s.sindicato ?? null,
       convencao_aplicavel_nome: s.convencao_aplicavel_nome ?? null,
-      situacao_convencao: s.situacao_convencao ?? null,
       recolhe_contribuicao: s.recolhe_contribuicao ?? null,
       ordem: i,
     }));
@@ -428,7 +429,7 @@ async function reconcileCredenciais(
 
   const existing = await trx
     .selectFrom('cliente_credenciais')
-    .select(['id', 'tipo', 'senha_cipher'])
+    .select(['id', 'tipo', 'senha_cipher', 'email_senha_cipher'])
     .where('cliente_id', '=', clienteId)
     .execute();
   const byId = new Map(existing.map((e) => [e.id, e]));
@@ -456,6 +457,8 @@ async function reconcileCredenciais(
           link: o.link ?? null,
           usuario: o.usuario ?? null,
           senha_cipher: resolveCipher(o.senha, cur.senha_cipher),
+          email: o.email ?? null,
+          email_senha_cipher: resolveCipher(o.email_senha, cur.email_senha_cipher),
         })
         .where('id', '=', cur.id)
         .execute();
@@ -468,8 +471,8 @@ async function reconcileCredenciais(
           link: o.link ?? null,
           usuario: o.usuario ?? null,
           senha_cipher: resolveCipher(o.senha, null),
-          email: null,
-          email_senha_cipher: null,
+          email: o.email ?? null,
+          email_senha_cipher: resolveCipher(o.email_senha, null),
         })
         .execute();
     }

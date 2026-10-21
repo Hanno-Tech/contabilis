@@ -23,9 +23,7 @@ import { fetchEstruturaFicha, fetchFicha, updateFolha } from '../api/resources';
 import { SectionCard } from '../components/ui';
 import {
   FILIACAO_SINDICAL_OPCOES,
-  PROCURACAO_DATA,
   SIM_NAO_NA,
-  SITUACAO_CONVENCAO_OPCOES,
   VENCIMENTO_LAUDO_DATA,
   derivarRecolhimento,
   quadroVisivel,
@@ -51,6 +49,8 @@ interface OrgaoState {
   link: string;
   usuario: string;
   senha: string;
+  email: string;
+  email_senha: string;
 }
 
 export function ClienteFormPage() {
@@ -92,7 +92,7 @@ export function ClienteFormPage() {
     setOrgaos(
       ficha.credenciais
         .filter((c) => c.tipo !== 'empregado_domestico')
-        .map((c) => ({ id: c.id, tipo: TIPO_LABEL[c.tipo] ?? c.tipo, link: c.link ?? '', usuario: c.usuario ?? '', senha: '' })),
+        .map((c) => ({ id: c.id, tipo: TIPO_LABEL[c.tipo] ?? c.tipo, link: c.link ?? '', usuario: c.usuario ?? '', senha: '', email: c.email ?? '', email_senha: '' })),
     );
     const ed = ficha.credenciais.find((c) => c.tipo === 'empregado_domestico');
     setEdUsuario(ed?.usuario ?? '');
@@ -144,22 +144,11 @@ export function ClienteFormPage() {
       payload.data_vencimento_laudo = null;
     }
 
-    // Mesma lógica para as procurações: "Sem procuração" / "Não se aplica"
-    // não convivem com uma data de vencimento.
-    for (const [situacao, data] of [
-      ['venc_procuracao_rfb_situacao', 'venc_procuracao_rfb'],
-      ['venc_procuracao_det_fgts_situacao', 'venc_procuracao_det_fgts'],
-      ['venc_procuracao_econsignado_situacao', 'venc_procuracao_econsignado'],
-    ] as const) {
-      if (form[situacao] && form[situacao] !== PROCURACAO_DATA) payload[data] = null;
-    }
-
     payload.sindicatos = sindicatos
-      .filter((s) => s.sindicato || s.situacao_convencao || s.recolhe_contribuicao)
+      .filter((s) => s.sindicato || s.recolhe_contribuicao)
       .map((s) => ({
         sindicato: s.sindicato || null,
         convencao_aplicavel_nome: s.convencao_aplicavel_nome || null,
-        situacao_convencao: s.situacao_convencao || null,
         recolhe_contribuicao: s.recolhe_contribuicao || null,
       }));
 
@@ -170,7 +159,9 @@ export function ClienteFormPage() {
         tipo: o.tipo.trim(),
         link: o.link || null,
         usuario: o.usuario || null,
+        email: o.email || null,
         ...(o.senha ? { senha: o.senha } : {}),
+        ...(o.email_senha ? { email_senha: o.email_senha } : {}),
       }));
     payload.credenciais = {
       orgaos: orgaosPayload,
@@ -336,7 +327,7 @@ export function ClienteFormPage() {
           <Button
             size="small"
             startIcon={<AddIcon />}
-            onClick={() => setSindicatos([...sindicatos, { sindicato: '', situacao_convencao: '', recolhe_contribuicao: '' }])}
+            onClick={() => setSindicatos([...sindicatos, { sindicato: '', recolhe_contribuicao: '' }])}
           >
             Adicionar
           </Button>
@@ -373,20 +364,7 @@ export function ClienteFormPage() {
                       ))}
                     </TextField>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      select
-                      label="Situação da convenção"
-                      value={s.situacao_convencao ?? ''}
-                      onChange={(e) => set({ situacao_convencao: e.target.value })}
-                      fullWidth
-                      size="small"
-                    >
-                      <MenuItem value=""><em>Não informado</em></MenuItem>
-                      {SITUACAO_CONVENCAO_OPCOES.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12}>
                     <TextField select label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao ?? ''} onChange={(e) => set({ recolhe_contribuicao: e.target.value })} fullWidth size="small">
                       <MenuItem value=""><em>Não informado</em></MenuItem>
                       {SIM_NAO_NA.map((o) => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
@@ -424,7 +402,7 @@ export function ClienteFormPage() {
       <SectionCard
         title="Senhas"
         action={
-          <Button size="small" startIcon={<AddIcon />} onClick={() => setOrgaos([...orgaos, { tipo: '', link: '', usuario: '', senha: '' }])}>
+          <Button size="small" startIcon={<AddIcon />} onClick={() => setOrgaos([...orgaos, { tipo: '', link: '', usuario: '', senha: '', email: '', email_senha: '' }])}>
             Adicionar órgão
           </Button>
         }
@@ -448,6 +426,8 @@ export function ClienteFormPage() {
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Grid>
+                  <Grid item xs={12} md={6}><TextField label="E-mail do cadastro" value={o.email} onChange={(e) => set({ email: e.target.value })} fullWidth size="small" /></Grid>
+                  <Grid item xs={12} md={5}><TextField label="Senha do e-mail" type="password" value={o.email_senha} onChange={(e) => set({ email_senha: e.target.value })} fullWidth size="small" placeholder="••••••" /></Grid>
                 </Grid>
               </Box>
             );

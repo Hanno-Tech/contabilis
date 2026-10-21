@@ -192,7 +192,6 @@ export function ClienteDetailPage() {
                 {i > 0 && <Divider sx={{ my: 2 }} />}
                 <Grid container spacing={2}>
                   <ReadField label="Filiação sindical" value={s.sindicato} wide />
-                  <ReadField label="Situação da convenção" value={s.situacao_convencao} />
                   <ReadField label="Recolhe contribuições sindicais?" value={s.recolhe_contribuicao} />
                 </Grid>
               </Box>
@@ -249,6 +248,12 @@ export function ClienteDetailPage() {
                 <LinkField label="Link de acesso" value={cred.link} />
                 <ReadField label="Usuário" value={cred.usuario} />
                 <SecretField label="Senha" value={revMap.get(cred.id)?.senha ?? null} masked={!revelado && cred.tem_senha} />
+                {(cred.email || cred.tem_email_senha) && (
+                  <>
+                    <ReadField label="E-mail" value={cred.email} />
+                    <SecretField label="Senha do e-mail" value={revMap.get(cred.id)?.email_senha ?? null} masked={!revelado && cred.tem_email_senha} />
+                  </>
+                )}
               </Grid>
             </Box>
           ))

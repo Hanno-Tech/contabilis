@@ -116,7 +116,6 @@ export interface ClienteSindicato {
   sindicato: string | null;
   /** Removida do formulário; mantida no tipo para não perder o que já foi gravado. */
   convencao_aplicavel_nome?: string | null;
-  situacao_convencao: string | null;
   recolhe_contribuicao: string | null;
   ordem?: number;
 }
@@ -393,4 +392,10 @@ export interface Imovel extends Record<string, string | number | null> {
   updated_at: string;
   cliente_codigo: number;
   cliente_nome: string;
+}
+
+/** Catálogo do relatório personalizado: campos da ficha agrupados por quadro. */
+export interface QuadroCamposRelatorio {
+  quadro: string;
+  campos: Array<{ chave: string; rotulo: string }>;
 }

@@ -4,7 +4,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
   Button,
+  Alert,
   CircularProgress,
+  FormControlLabel,
+  Switch,
   InputAdornment,
   Paper,
   Stack,
@@ -19,12 +22,16 @@ import {
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { fetchRelatorio, listRelatorios } from '../api/resources';
+import { fetchCamposPersonalizado, fetchRelatorio, gerarRelatorioPersonalizado, listRelatorios } from '../api/resources';
 import type { Relatorio } from '../types';
 import { EmptyState } from '../components/ui';
 import { exportRelatorioExcel } from '../lib/exportExcel';
 import type { Setor } from '../lib/setor';
 import { CampoData } from '../components/CampoData';
+import { SeletorCampos } from '../components/SeletorCampos';
+
+/** Chave do cartão que abre o construtor do relatório personalizado (não é um relatório do catálogo). */
+const PERSONALIZADO = 'personalizado';
 
 /** 'DD/MM/AAAA' ou 'MM/AAAA' -> 'AAAA-MM-DD' comparável (ou null se não for data). */
 function parseDataBr(value: unknown): string | null {
@@ -100,11 +107,46 @@ export function RelatoriosPage({ setor = 'pessoal' }: { setor?: Setor }) {
     queryFn: () => listRelatorios(setor),
   });
 
-  const { data: relatorio, isFetching } = useQuery({
+  const emPersonalizado = selected === PERSONALIZADO;
+  const { data: relatorioCatalogo, isFetching } = useQuery({
     queryKey: ['relatorio', selected],
     queryFn: () => fetchRelatorio(selected!),
-    enabled: !!selected,
+    enabled: !!selected && !emPersonalizado,
   });
+
+  // Relatório personalizado: escolha dos campos e geração sob demanda.
+  const { data: camposCatalogo } = useQuery({
+    queryKey: ['relatorio-personalizado-campos'],
+    queryFn: fetchCamposPersonalizado,
+    enabled: emPersonalizado,
+  });
+  const [camposEscolhidos, setCamposEscolhidos] = useState<Set<string>>(new Set());
+  const [soAtivos, setSoAtivos] = useState(true);
+  const [personalizado, setPersonalizado] = useState<Relatorio | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [erroGerar, setErroGerar] = useState<string | null>(null);
+
+  async function gerarPersonalizado() {
+    setGerando(true);
+    setErroGerar(null);
+    try {
+      setPersonalizado(
+        await gerarRelatorioPersonalizado({
+          campos: [...camposEscolhidos],
+          situacao: soAtivos ? 'ativos' : 'todos',
+        }),
+      );
+      setBusca('');
+      setDataDe('');
+      setDataAte('');
+    } catch {
+      setErroGerar('Não foi possível gerar o relatório.');
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  const relatorio = emPersonalizado ? personalizado ?? undefined : relatorioCatalogo;
 
   const colsData = useMemo(() => (relatorio ? colunasDeData(relatorio) : []), [relatorio]);
   const grupos = useMemo(() => (relatorio ? gruposDeColunas(relatorio) : null), [relatorio]);
@@ -133,7 +175,16 @@ export function RelatoriosPage({ setor = 'pessoal' }: { setor?: Setor }) {
 
       {/* Catálogo de relatórios */}
       <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
-        {catalogo?.map((r) => {
+        {[
+          ...(catalogo ?? []),
+          ...(setor === 'pessoal'
+            ? [{
+                key: PERSONALIZADO,
+                titulo: 'Relatório personalizado',
+                descricao: 'Escolha os campos da ficha que quer ver e exporte para Excel.',
+              }]
+            : []),
+        ].map((r) => {
           const active = r.key === selected;
           return (
             <Paper
@@ -161,11 +212,36 @@ export function RelatoriosPage({ setor = 'pessoal' }: { setor?: Setor }) {
         })}
       </Stack>
 
+      {emPersonalizado && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          {camposCatalogo ? (
+            <SeletorCampos catalogo={camposCatalogo} selecionados={camposEscolhidos} onChange={setCamposEscolhidos} />
+          ) : (
+            <CircularProgress size={24} />
+          )}
+          {erroGerar && <Alert severity="error" sx={{ mt: 2 }}>{erroGerar}</Alert>}
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+            <FormControlLabel
+              control={<Switch checked={soAtivos} onChange={(e) => setSoAtivos(e.target.checked)} />}
+              label="Somente empresas ativas"
+            />
+            <Button
+              variant="contained"
+              onClick={gerarPersonalizado}
+              disabled={camposEscolhidos.size === 0 || gerando}
+              startIcon={gerando ? <CircularProgress size={16} /> : undefined}
+            >
+              Gerar relatório
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
       {!selected ? (
         <Paper variant="outlined">
           <EmptyState message="Escolha um relatório acima." />
         </Paper>
-      ) : isFetching && !relatorio ? (
+      ) : emPersonalizado && !relatorio ? null : isFetching && !relatorio ? (
         <Box sx={{ p: 6, textAlign: 'center' }}>
           <CircularProgress />
         </Box>

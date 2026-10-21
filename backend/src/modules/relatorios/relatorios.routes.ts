@@ -5,6 +5,9 @@ import { setorDaQuery } from '../../lib/setor.js';
 import { requireAuth } from '../../middleware/auth.js';
 import * as repo from './relatorios.repository.js';
 import * as contabil from './relatorios.contabil.js';
+import * as personalizado from './relatorios.personalizado.js';
+import { z } from 'zod';
+import { BadRequest } from '../../lib/errors.js';
 
 export const relatoriosRouter = Router();
 relatoriosRouter.use(requireAuth);
@@ -30,14 +33,20 @@ const RELATORIOS: Record<
   'procuracoes-vencidas': {
     setor: 'pessoal',
     titulo: 'Procurações vencidas',
-    descricao: 'Procurações com data de vencimento no passado.',
+    descricao: 'Procurações ativas com data de vencimento no passado.',
     gerar: repo.relProcuracoesVencidas,
   },
   'vencimento-procuracoes': {
     setor: 'pessoal',
     titulo: 'Vencimento de procurações',
-    descricao: 'Vencimento das procurações RFB, DET/FGTS e e-Consignado e e-mails do DET.',
+    descricao: 'Situação e vencimento das procurações e-Consignado e DET/FGTS e e-mails do DET.',
     gerar: repo.relVencimentoProcuracoes,
+  },
+  'laudos-vencidos': {
+    setor: 'pessoal',
+    titulo: 'Laudos de SST vencidos',
+    descricao: 'Empresas com laudo atrasado, o vencimento e a empresa responsável pelo laudo.',
+    gerar: repo.relLaudosVencidos,
   },
   'campos-nao-preenchidos': {
     setor: 'pessoal',
@@ -118,6 +127,29 @@ relatoriosRouter.get(
         .filter(([, r]) => r.setor === setor)
         .map(([key, r]) => ({ key, titulo: r.titulo, descricao: r.descricao })),
     );
+  }),
+);
+
+// Relatório personalizado: catálogo de campos escolhíveis e geração
+relatoriosRouter.get('/personalizado/campos', (_req, res) => {
+  res.json(personalizado.catalogoPersonalizado());
+});
+
+const personalizadoSchema = z.object({
+  campos: z.array(z.string()).min(1, 'Escolha ao menos um campo'),
+  situacao: z.enum(['ativos', 'todos']).default('ativos'),
+});
+
+relatoriosRouter.post(
+  '/personalizado',
+  asyncHandler(async (req, res) => {
+    const input = personalizadoSchema.parse(req.body);
+    try {
+      res.json(await personalizado.relPersonalizado(input));
+    } catch (err) {
+      if (err instanceof personalizado.CamposInvalidos) throw BadRequest(err.message);
+      throw err;
+    }
   }),
 );
 

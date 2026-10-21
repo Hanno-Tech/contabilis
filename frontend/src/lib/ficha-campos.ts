@@ -27,7 +27,6 @@ import {
   OPERADORA_OPCOES,
   POSSUI_FOLHA_OPCOES,
   POSSUI_LAUDO_OPCOES,
-  PROCURACAO_DATA,
   PROCURACAO_OPCOES,
   RESPONSAVEL_FOLHA_OPCOES,
   SIM_NAO_NA,
@@ -154,32 +153,16 @@ export const SCALAR_CARDS: { title: string; fields: FieldDef[] }[] = [
   },
   {
     title: 'Procurações',
-    // Cada procuração é situação + data, como no laudo de SST: "Sem procuração"
-    // precisa ser registrável, senão fica indistinguível de campo não preenchido.
+    // e-Consignado e DET/FGTS: situação (lista), data da situação e vencimento.
     // DET e FGTS Digital são uma só procuração (é assim que a planilha do setor
     // trata, e é onde estão os dados importados).
     fields: [
-      { key: 'venc_procuracao_rfb_situacao', label: 'Procuração RFB', type: 'select', options: PROCURACAO_OPCOES },
-      {
-        key: 'venc_procuracao_rfb',
-        label: 'Vencimento da RFB',
-        type: 'date',
-        showIf: (f) => f.venc_procuracao_rfb_situacao === PROCURACAO_DATA,
-      },
-      { key: 'venc_procuracao_det_fgts_situacao', label: 'Procuração DET e FGTS Digital', type: 'select', options: PROCURACAO_OPCOES },
-      {
-        key: 'venc_procuracao_det_fgts',
-        label: 'Vencimento da DET/FGTS',
-        type: 'date',
-        showIf: (f) => f.venc_procuracao_det_fgts_situacao === PROCURACAO_DATA,
-      },
-      { key: 'venc_procuracao_econsignado_situacao', label: 'Procuração e-Consignado', type: 'select', options: PROCURACAO_OPCOES },
-      {
-        key: 'venc_procuracao_econsignado',
-        label: 'Vencimento do e-Consignado',
-        type: 'date',
-        showIf: (f) => f.venc_procuracao_econsignado_situacao === PROCURACAO_DATA,
-      },
+      { key: 'venc_procuracao_econsignado_situacao', label: 'e-Consignado — Situação', type: 'select', options: PROCURACAO_OPCOES, wide: true },
+      { key: 'venc_procuracao_econsignado_data_situacao', label: 'e-Consignado — Data da situação', type: 'date' },
+      { key: 'venc_procuracao_econsignado', label: 'e-Consignado — Data de vencimento', type: 'date' },
+      { key: 'venc_procuracao_det_fgts_situacao', label: 'DET e FGTS — Situação', type: 'select', options: PROCURACAO_OPCOES, wide: true },
+      { key: 'venc_procuracao_det_fgts_data_situacao', label: 'DET e FGTS — Data da situação', type: 'date' },
+      { key: 'venc_procuracao_det_fgts', label: 'DET e FGTS — Data de vencimento', type: 'date' },
       { key: 'emails_notificacao_det', label: 'E-mails que recebem o DET', wide: true },
     ],
   },

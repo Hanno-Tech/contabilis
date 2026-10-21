@@ -1,6 +1,6 @@
 import { db } from '../../db/index.js';
 import type { Setor } from '../../db/types.js';
-import { TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
+import { PROCURACAO_ATIVA, TODOS_CAMPOS, camposFaltantes } from '../clientes/ficha.rules.js';
 
 /**
  * Relatórios dos setores pessoal e contábil. Todos devolvem o mesmo formato uniforme
@@ -57,23 +57,13 @@ function clientesComFolha() {
 
 // --------------------------------------------------------------- Procurações
 
-const PROCURACOES: Array<{ campo: string; tipo: string }> = [
-  // `venc_procuracao_det` e `venc_procuracao_fgts` ficaram de fora: são colunas
-  // órfãs, nunca preenchidas. A planilha do setor trata DET e FGTS Digital como
-  // uma procuração só, que é o que a ficha edita.
-  { campo: 'venc_procuracao_rfb', tipo: 'RFB' },
-  { campo: 'venc_procuracao_det_fgts', tipo: 'DET/FGTS' },
-  { campo: 'venc_procuracao_econsignado', tipo: 'e-Consignado' },
+const PROCURACOES: Array<{ campo: string; situacao: string; tipo: string }> = [
+  // A procuração da RFB saiu do controle do setor. `venc_procuracao_det` e
+  // `venc_procuracao_fgts` são colunas órfãs; DET e FGTS Digital são uma
+  // procuração só, que é o que a ficha edita.
+  { campo: 'venc_procuracao_econsignado', situacao: 'venc_procuracao_econsignado_situacao', tipo: 'e-Consignado' },
+  { campo: 'venc_procuracao_det_fgts', situacao: 'venc_procuracao_det_fgts_situacao', tipo: 'DET e FGTS' },
 ];
-
-/**
- * Data de vencimento; sem data, a situação escolhida na ficha ("Sem procuração",
- * "Não se aplica"). "Data informada" sem data não diz nada, então fica vazio.
- */
-function vencOuSituacao(data: string | null, situacao: string | null): string {
-  if (data) return fmtData(data);
-  return situacao && situacao !== 'Data informada' ? situacao : '';
-}
 
 // ================================================================ Relatórios
 
@@ -107,6 +97,8 @@ export async function relFechamentoFolha(): Promise<Relatorio> {
       'cliente_folha.possui_folha',
       'cliente_folha.apura_ponto_escritorio',
       'cliente_folha.realiza_lancamentos',
+      'cliente_folha.folha_rotina_automatica',
+      'cliente_folha.codigo_rotina_automatica',
       'cliente_folha.concede_plano_saude',
       'cliente_folha.plano_operadora',
       'cliente_folha.plano_beneficiarios',
@@ -145,6 +137,8 @@ export async function relFechamentoFolha(): Promise<Relatorio> {
     possui_folha: r.possui_folha ?? '',
     apura_ponto: r.apura_ponto_escritorio ?? '',
     realiza_lancamentos: r.realiza_lancamentos ?? '',
+    rotina_automatica: r.folha_rotina_automatica ?? '',
+    codigo_rotina: r.codigo_rotina_automatica ?? '',
     plano_concede: r.concede_plano_saude ?? '',
     plano_operadora: r.plano_operadora ?? '',
     plano_beneficiarios: r.plano_beneficiarios ?? '',
@@ -179,6 +173,8 @@ export async function relFechamentoFolha(): Promise<Relatorio> {
       { key: 'possui_folha', label: 'Possui folha de pagamento?', grupo: GERAIS },
       { key: 'apura_ponto', label: 'Apura o ponto pelo escritório?', grupo: FOLHA },
       { key: 'realiza_lancamentos', label: 'Realiza lançamentos?', grupo: FOLHA },
+      { key: 'rotina_automatica', label: 'Gera folha via rotina automática?', grupo: FOLHA },
+      { key: 'codigo_rotina', label: 'Código da rotina automática', grupo: FOLHA },
       { key: 'plano_concede', label: 'Concede plano de saúde?', grupo: FOLHA },
       { key: 'plano_operadora', label: 'Operadora do plano', grupo: FOLHA },
       { key: 'plano_beneficiarios', label: 'Beneficiários do plano', grupo: FOLHA },
@@ -228,25 +224,26 @@ export async function relClientesPorSituacao(): Promise<Relatorio> {
   };
 }
 
-/** 3 — Procurações vencidas (uma linha por procuração com data no passado). */
+/** 3 — Procurações vencidas (uma linha por procuração ativa com data no passado). */
 export async function relProcuracoesVencidas(): Promise<Relatorio> {
   const rows = await clientesComFolha()
     .select([
       'clientes.codigo',
       'clientes.nome',
-      'cliente_folha.venc_procuracao_rfb',
-      'cliente_folha.venc_procuracao_det',
       'cliente_folha.venc_procuracao_det_fgts',
-      'cliente_folha.venc_procuracao_fgts',
+      'cliente_folha.venc_procuracao_det_fgts_situacao',
       'cliente_folha.venc_procuracao_econsignado',
+      'cliente_folha.venc_procuracao_econsignado_situacao',
     ])
     .execute();
 
   const linhas: Relatorio['linhas'] = [];
   for (const r of rows) {
-    for (const { campo, tipo } of PROCURACOES) {
-      const data = (r as unknown as Record<string, string | null>)[campo];
-      if (!data || diasAte(data) >= 0) continue; // só vencidas
+    const reg = r as unknown as Record<string, string | null>;
+    for (const { campo, situacao, tipo } of PROCURACOES) {
+      const data = reg[campo];
+      // Só procuração "Ativa" tem vencimento a acompanhar.
+      if (!data || reg[situacao] !== PROCURACAO_ATIVA || diasAte(data) >= 0) continue;
       linhas.push({
         codigo: r.codigo,
         nome: r.nome,
@@ -272,8 +269,8 @@ export async function relProcuracoesVencidas(): Promise<Relatorio> {
 }
 
 /**
- * 3b — Vencimento de procurações: uma linha por empresa, com o vencimento de
- * cada procuração e os e-mails que recebem as notificações do DET.
+ * 3b — Vencimento de procurações: uma linha por empresa, com situação, data da
+ * situação e vencimento de cada procuração e os e-mails que recebem o DET.
  */
 export async function relVencimentoProcuracoes(): Promise<Relatorio> {
   const rows = await clientesComFolha()
@@ -281,16 +278,19 @@ export async function relVencimentoProcuracoes(): Promise<Relatorio> {
       'clientes.codigo',
       'clientes.nome',
       'clientes.cnpj',
-      'cliente_folha.venc_procuracao_rfb',
-      'cliente_folha.venc_procuracao_rfb_situacao',
-      'cliente_folha.venc_procuracao_det_fgts',
-      'cliente_folha.venc_procuracao_det_fgts_situacao',
       'cliente_folha.venc_procuracao_econsignado',
       'cliente_folha.venc_procuracao_econsignado_situacao',
+      'cliente_folha.venc_procuracao_econsignado_data_situacao',
+      'cliente_folha.venc_procuracao_det_fgts',
+      'cliente_folha.venc_procuracao_det_fgts_situacao',
+      'cliente_folha.venc_procuracao_det_fgts_data_situacao',
       'cliente_folha.emails_notificacao_det',
     ])
     .orderBy('clientes.codigo')
     .execute();
+
+  const CONSIGNADO = 'e-Consignado';
+  const DET = 'DET e FGTS';
 
   return {
     titulo: 'Relatório de vencimento de procurações',
@@ -298,26 +298,71 @@ export async function relVencimentoProcuracoes(): Promise<Relatorio> {
       { key: 'codigo', label: 'Código da empresa' },
       { key: 'nome', label: 'Nome da empresa' },
       { key: 'cnpj', label: 'CNPJ' },
-      { key: 'procuracao_rfb', label: 'Procuração RFB' },
-      { key: 'procuracao_det_fgts', label: 'Procuração DET e FGTS Digital' },
-      { key: 'procuracao_econsignado', label: 'Procuração e-Consignado' },
+      { key: 'consig_situacao', label: 'Situação', grupo: CONSIGNADO },
+      { key: 'consig_data_situacao', label: 'Data da situação', grupo: CONSIGNADO },
+      { key: 'consig_vencimento', label: 'Data de vencimento', grupo: CONSIGNADO },
+      { key: 'det_situacao', label: 'Situação', grupo: DET },
+      { key: 'det_data_situacao', label: 'Data da situação', grupo: DET },
+      { key: 'det_vencimento', label: 'Data de vencimento', grupo: DET },
       { key: 'emails_det', label: 'E-mails que recebem o DET' },
     ],
     linhas: rows.map((r) => ({
       codigo: r.codigo,
       nome: r.nome,
       cnpj: r.cnpj ?? '',
-      procuracao_rfb: vencOuSituacao(r.venc_procuracao_rfb, r.venc_procuracao_rfb_situacao),
-      procuracao_det_fgts: vencOuSituacao(
-        r.venc_procuracao_det_fgts,
-        r.venc_procuracao_det_fgts_situacao,
-      ),
-      procuracao_econsignado: vencOuSituacao(
-        r.venc_procuracao_econsignado,
-        r.venc_procuracao_econsignado_situacao,
-      ),
+      consig_situacao: r.venc_procuracao_econsignado_situacao ?? '',
+      consig_data_situacao: fmtData(r.venc_procuracao_econsignado_data_situacao),
+      consig_vencimento: fmtData(r.venc_procuracao_econsignado),
+      det_situacao: r.venc_procuracao_det_fgts_situacao ?? '',
+      det_data_situacao: fmtData(r.venc_procuracao_det_fgts_data_situacao),
+      det_vencimento: fmtData(r.venc_procuracao_det_fgts),
       emails_det: r.emails_notificacao_det ?? '',
     })),
+  };
+}
+
+/**
+ * 3c — Laudos de SST vencidos: empresas com a data de vencimento do laudo no
+ * passado, com a empresa responsável pela elaboração. Mais atrasados primeiro.
+ */
+export async function relLaudosVencidos(): Promise<Relatorio> {
+  const rows = await clientesComFolha()
+    .select([
+      'clientes.codigo',
+      'clientes.nome',
+      'clientes.situacao',
+      'cliente_folha.empresa_responsavel_sst',
+      'cliente_folha.data_vencimento_laudo',
+    ])
+    .where('cliente_folha.data_vencimento_laudo', 'is not', null)
+    .orderBy('cliente_folha.data_vencimento_laudo')
+    .execute();
+
+  const linhas: Relatorio['linhas'] = [];
+  for (const r of rows) {
+    const dias = diasAte(r.data_vencimento_laudo as string);
+    if (dias >= 0) continue; // só vencidos
+    linhas.push({
+      codigo: r.codigo,
+      nome: r.nome,
+      situacao: r.situacao,
+      empresa_sst: r.empresa_responsavel_sst ?? '',
+      vencimento: fmtData(r.data_vencimento_laudo),
+      dias_atraso: -dias,
+    });
+  }
+
+  return {
+    titulo: 'Relatório de laudos de SST vencidos',
+    colunas: [
+      { key: 'codigo', label: 'Código da empresa' },
+      { key: 'nome', label: 'Nome da empresa' },
+      { key: 'situacao', label: 'Situação' },
+      { key: 'empresa_sst', label: 'Empresa responsável pelo laudo' },
+      { key: 'vencimento', label: 'Data de vencimento do laudo' },
+      { key: 'dias_atraso', label: 'Dias em atraso' },
+    ],
+    linhas,
   };
 }
 

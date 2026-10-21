@@ -42,6 +42,14 @@ const seDataInformada = (dependeDe: string): Obrigatoriedade => ({
   valores: ['Data informada'],
 });
 
+/** Situação de procuração em que há vencimento a acompanhar. */
+export const PROCURACAO_ATIVA = 'Ativa';
+const seAtiva = (dependeDe: string): Obrigatoriedade => ({
+  tipo: 'condicional',
+  dependeDe,
+  valores: [PROCURACAO_ATIVA],
+});
+
 export const QUADROS: QuadroFicha[] = [
   {
     titulo: 'Informações gerais',
@@ -131,12 +139,12 @@ export const QUADROS: QuadroFicha[] = [
   {
     titulo: 'Procurações',
     campos: [
-      { campo: 'venc_procuracao_rfb_situacao', rotulo: 'Situação da procuração RFB', origem: 'folha', obrigatoriedade: obrigatorio },
-      { campo: 'venc_procuracao_rfb', rotulo: 'Vencimento da procuração RFB', origem: 'folha', obrigatoriedade: seDataInformada('venc_procuracao_rfb_situacao') },
-      { campo: 'venc_procuracao_det_fgts_situacao', rotulo: 'Situação da procuração DET/FGTS', origem: 'folha', obrigatoriedade: obrigatorio },
-      { campo: 'venc_procuracao_det_fgts', rotulo: 'Vencimento da procuração DET/FGTS', origem: 'folha', obrigatoriedade: seDataInformada('venc_procuracao_det_fgts_situacao') },
       { campo: 'venc_procuracao_econsignado_situacao', rotulo: 'Situação da procuração e-Consignado', origem: 'folha', obrigatoriedade: obrigatorio },
-      { campo: 'venc_procuracao_econsignado', rotulo: 'Vencimento da procuração e-Consignado', origem: 'folha', obrigatoriedade: seDataInformada('venc_procuracao_econsignado_situacao') },
+      { campo: 'venc_procuracao_econsignado_data_situacao', rotulo: 'Data da situação da procuração e-Consignado', origem: 'folha', obrigatoriedade: opcional },
+      { campo: 'venc_procuracao_econsignado', rotulo: 'Vencimento da procuração e-Consignado', origem: 'folha', obrigatoriedade: seAtiva('venc_procuracao_econsignado_situacao') },
+      { campo: 'venc_procuracao_det_fgts_situacao', rotulo: 'Situação da procuração DET e FGTS', origem: 'folha', obrigatoriedade: obrigatorio },
+      { campo: 'venc_procuracao_det_fgts_data_situacao', rotulo: 'Data da situação da procuração DET e FGTS', origem: 'folha', obrigatoriedade: opcional },
+      { campo: 'venc_procuracao_det_fgts', rotulo: 'Vencimento da procuração DET e FGTS', origem: 'folha', obrigatoriedade: seAtiva('venc_procuracao_det_fgts_situacao') },
       { campo: 'emails_notificacao_det', rotulo: 'E-mails que recebem o DET', origem: 'folha', obrigatoriedade: obrigatorio },
     ],
   },
